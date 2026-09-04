@@ -1708,7 +1708,15 @@ window.HOTELS = [
     "map": "https://www.google.com/maps/search/?api=1&query=THE+KANZASHI+TOKYO+ASAKUSA",
     "mapcode": "770 534*06",
     "parking": "本次不使用；11/23才取車",
-    "note": "Check-in 15:00／Check-out 11:00。屋頂露台可看晴空塔。"
+    "note": "Check-in 15:00／Check-out 11:00。屋頂露台可看晴空塔。",
+    "image": "assets/hotels/kanzashi.jpg",
+    "booking": {
+      "platform": "樂天旅遊",
+      "amount": "NT$7,563",
+      "payment": "已付款",
+      "cancelDate": "2026-11-18",
+      "meal": ""
+    }
   },
   {
     "name": "Shoji Mount Hotel",
@@ -1717,7 +1725,15 @@ window.HOTELS = [
     "map": "https://www.google.com/maps/search/?api=1&query=Shoji+Mount+Hotel",
     "mapcode": "312 567 593*33",
     "parking": "飯店前／周邊免費停車，自駕方便",
-    "note": "連住2晚；大浴場並非天然溫泉。天氣好可看精進湖晨景。"
+    "note": "連住2晚；大浴場並非天然溫泉。天氣好可看精進湖晨景。",
+    "image": "assets/hotels/shoji-mount-hotel.jpg",
+    "booking": {
+      "platform": "IKYU",
+      "amount": "¥40,500",
+      "payment": "依訂單",
+      "cancelDate": "2026-11-23T08:00",
+      "meal": "不含餐"
+    }
   },
   {
     "name": "Fuji Lake Hotel",
@@ -1726,7 +1742,15 @@ window.HOTELS = [
     "map": "https://www.google.com/maps/search/?api=1&query=Fuji+Lake+Hotel+Kawaguchiko",
     "mapcode": "161 302 099*38",
     "parking": "免費停車",
-    "note": "15:00後以飯店、晚餐、泡湯為主；本次生日紀念住宿。"
+    "note": "15:00後以飯店、晚餐、泡湯為主；本次生日紀念住宿。",
+    "image": "assets/hotels/fuji-lake-hotel.jpg",
+    "booking": {
+      "platform": "IKYU",
+      "amount": "¥59,840",
+      "payment": "11/26 自動刷卡",
+      "cancelDate": "2026-11-13",
+      "meal": "含早晚餐"
+    }
   },
   {
     "name": "北の庭 THE KURETAKESO",
@@ -1735,7 +1759,15 @@ window.HOTELS = [
     "map": "https://www.google.com/maps/search/?api=1&query=Kitanoniwa+THE+KURETAKESO",
     "mapcode": "26 133 250*44",
     "parking": "約40台，¥1,000/晚；先到先停，滿場改附近Coin P",
-    "note": "連住2晚；11/27 Suzuki 15:00為固定錨點。"
+    "note": "連住2晚；11/27 Suzuki 15:00為固定錨點。",
+    "image": "assets/hotels/kitanoniwa.jpg",
+    "booking": {
+      "platform": "Agoda",
+      "amount": "NT$3,805",
+      "payment": "已付款",
+      "cancelDate": "2026-11-22",
+      "meal": "含早餐"
+    }
   },
   {
     "name": "岩本樓本館",
@@ -1744,7 +1776,15 @@ window.HOTELS = [
     "map": "https://www.google.com/maps/search/?api=1&query=Iwamotoro+Honkan+Enoshima",
     "mapcode": "15 177 689*47",
     "parking": "江之島觀光協會停車場；週六滿場需Plan B",
-    "note": "含早餐、不含晚餐；晚上以羅馬風呂、弁天洞窟風呂與館內歷史體驗為主。"
+    "note": "含早餐、不含晚餐；晚上以羅馬風呂、弁天洞窟風呂與館內歷史體驗為主。",
+    "image": "assets/hotels/iwamotoro.jpg",
+    "booking": {
+      "platform": "樂天旅遊",
+      "amount": "NT$6,138",
+      "payment": "到店付款",
+      "cancelDate": "2026-11-23",
+      "meal": "含早餐"
+    }
   },
   {
     "name": "ART HOTEL Narita",
@@ -1753,6 +1793,8 @@ window.HOTELS = [
     "map": "https://www.google.com/maps/search/?api=1&query=ART+HOTEL+Narita",
     "mapcode": "137 702 297*62",
     "parking": "住宿客¥300/24h",
-    "note": "11/30星期一朝湯休息，因此11/29晚上一定泡成田溫泉「美湯」。"
+    "note": "11/30星期一朝湯休息，因此11/29晚上一定泡成田溫泉「美湯」。",
+    "image": "assets/hotels/art-hotel-narita.jpg",
+    "booking": null
   }
 ];

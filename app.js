@@ -22,7 +22,47 @@ $('#parkingList').innerHTML=data.filter(r=>r['類型']==='停車').map(r=>`<arti
 function nextItem(){const now=new Date();let future=data.filter(r=>r.日期時間&&dt(r.日期時間)>=now&&r['類型']!=='備案').sort((a,b)=>dt(a.日期時間)-dt(b.日期時間));if(!future.length)future=data;$('#nextItem').innerHTML=itemHTML(future[0]);$('#homeTodayText').textContent=`${currentTripDay()} · ${dayDates[currentTripDay()].slice(5).replace('-','/')}`;const h=hotels.find(x=>x.dates.includes(dayDates[currentTripDay()].slice(5).replace('-','/')))||hotels[0];if(h)$('#homeHotelText').textContent=h.name;}
 nextItem();
 // Hotels local private + cover
-async function renderHotels(){const priv=Object.fromEntries((await TripDB.all('hotelPrivate')).map(x=>[x.id,x]));const covers=Object.fromEntries((await TripDB.all('hotelCovers')).map(x=>[x.id,x]));$('#hotelList').innerHTML=hotels.map((h,i)=>{const id=hotelId(h),p=priv[id],c=covers[id];const cover=c?.dataUrl?`style="background-image:url('${c.dataUrl}')"`:'';const cancel=p?.cancelDate?cancelText(p.cancelDate):'';return `<article class="hotel"><div class="hotel-cover" ${cover}><span class="dates">${esc(h.dates)} · ${esc(h.area)}</span></div><div class="hotel-body"><h3>${esc(h.name)}</h3><p class="note">🅿️ ${esc(h.parking)}</p><p class="note">${esc(h.note)}</p>${p?`<div class="hotel-private">🔐 <b>${esc(p.platform||'私人訂房資料')}</b>${p.amount?`<br>${esc(p.currency||'')} ${esc(p.amount)} · ${esc(p.payment||'')}`:''}${p.card?`<br>💳 ${esc(p.card)}`:''}${cancel?`<br>⏳ ${esc(cancel)}`:''}${p.bookingNo?`<br>預訂號碼：••••${esc(String(p.bookingNo).slice(-4))}`:''}</div>`:''}<div class="actions">${mapBtn(h.map)}${mapCode(h.mapcode)}<button onclick="editHotelPrivate('${id}')">🔐 私人資料</button><button onclick="pickHotelCover('${id}')">🖼 封面</button></div><input id="cover-${id}" type="file" accept="image/*" hidden onchange="saveHotelCover('${id}',this.files[0])"></div></article>`}).join('');}
+async function renderHotels(){
+  const priv=Object.fromEntries((await TripDB.all('hotelPrivate')).map(x=>[x.id,x]));
+  const covers=Object.fromEntries((await TripDB.all('hotelCovers')).map(x=>[x.id,x]));
+  $('#hotelList').innerHTML=hotels.map((h,i)=>{
+    const id=hotelId(h),p=priv[id],c=covers[id];
+    const coverSrc=c?.dataUrl || h.image || '';
+    const cover=coverSrc?`style="background-image:url('${coverSrc}')"`:'';
+    const b=h.booking||null;
+    const publicCancel=b?.cancelDate?cancelText(b.cancelDate):'';
+    const publicBooking=b?`<div class="hotel-booking">
+      <div class="big">BOOKING</div>
+      <b>${esc(b.platform||'')}</b>
+      ${b.amount?`<span> · ${esc(b.amount)}</span>`:''}
+      ${b.meal?`<br>🍽 ${esc(b.meal)}`:''}
+      ${b.payment?`<br>💳 ${esc(b.payment)}`:''}
+      ${publicCancel?`<br>⏳ ${esc(publicCancel)}`:''}
+    </div>`:'';
+    const privateBits=[];
+    if(p?.card) privateBits.push(`💳 使用卡片：${esc(p.card)}`);
+    if(p?.bookingNo) privateBits.push(`預訂號碼：••••${esc(String(p.bookingNo).slice(-4))}`);
+    if(p?.verifyCode) privateBits.push(`驗證碼：已儲存在本機`);
+    if(p?.note) privateBits.push(esc(p.note));
+    const privatePanel=privateBits.length?`<div class="hotel-private">🔐 <b>僅此裝置</b><br>${privateBits.join('<br>')}</div>`:'';
+    return `<article class="hotel">
+      <div class="hotel-cover" ${cover}><span class="dates">${esc(h.dates)} · ${esc(h.area)}</span></div>
+      <div class="hotel-body">
+        <h3>${esc(h.name)}</h3>
+        <p class="note">🅿️ ${esc(h.parking)}</p>
+        <p class="note">${esc(h.note)}</p>
+        ${publicBooking}
+        ${privatePanel}
+        <div class="actions">
+          ${mapBtn(h.map)}${mapCode(h.mapcode)}
+          <button onclick="editHotelPrivate('${id}')">🔐 私人資料</button>
+          <button onclick="pickHotelCover('${id}')">🖼 更換封面</button>
+        </div>
+        <input id="cover-${id}" type="file" accept="image/*" hidden onchange="saveHotelCover('${id}',this.files[0])">
+      </div>
+    </article>`;
+  }).join('');
+}
 function hotelId(h){return h.name.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g,'-')}
 function cancelText(s){const d=new Date(s.length===10?s+'T23:59:00':s),days=Math.ceil((d-new Date())/86400000);return days>=0?`免費取消期限 ${s.replace('T',' ')}（${days} 天後）`:`免費取消期限 ${s.replace('T',' ')}（已過）`}
 window.editHotelPrivate=async id=>{const old=await TripDB.get('hotelPrivate',id)||{id};openDialog('私人訂房資料',[['platform','平台','text',old.platform||''],['amount','金額','number',old.amount||''],['currency','幣別','select',old.currency||'TWD',['TWD','JPY']],['payment','付款狀態','text',old.payment||''],['card','付款／擔保卡','text',old.card||''],['cancelDate','免費取消期限','datetime-local',old.cancelDate||''],['bookingNo','預訂號碼','text',old.bookingNo||''],['verifyCode','驗證碼','text',old.verifyCode||''],['note','備註','textarea',old.note||'']],async v=>{await TripDB.put('hotelPrivate',{id,...v});renderHotels()})};
