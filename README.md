@@ -1,24 +1,8 @@
-# Japan Road Trip 2026 PWA V1
+# Japan Road Trip 2026 — PWA V2 Beta
 
-這是可直接部署到 GitHub Pages 的靜態 PWA。
+新增：美化首頁、日幣換算、信用卡攻略、必買清單、旅行記帳、旅行日記與照片、回憶錄列印、私人住宿資料、備份/還原、景點導讀。
 
-檔案：
-- index.html
-- style.css
-- app.js
-- data.js
-- manifest.json
-- service-worker.js
-- icons/
+## 隱私
+公開 GitHub 只包含程式、行程與公開優惠資料。訂單碼、付款資訊、日記、照片、記帳等皆儲存在使用裝置的 IndexedDB。
 
-特色：
-- Today / Days / Drive / Parking / Hotels / Plan B / Checklist
-- Google Maps 一鍵導航
-- Map Code 一鍵複製
-- 出發前確認清單會存在手機瀏覽器 localStorage
-- Service Worker 離線快取
-- 可加入 iPhone / Android 主畫面
-
-注意：
-- 目前是 V1 原型，資料以既有 Notion CSV 加上最新幾個已確認調整製作。
-- 正式出發前可再把 Notion 最終版資料重新匯出，更新 data.js。
+私人訂房資料可透過另外提供的 JSON 檔匯入；**請勿把 PRIVATE IMPORT JSON 上傳 GitHub**。

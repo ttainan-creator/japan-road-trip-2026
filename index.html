@@ -1,100 +1,56 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f6f2ea" />
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Japan Trip">
-  <title>Japan Road Trip 2026</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f4efe6"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Japan Road Trip 2026</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="hero">
-    <div>
-      <div class="eyebrow">2026/11/21–11/30 · 10天9夜</div>
-      <h1>🇯🇵 Japan Road Trip 2026</h1>
-      <p id="todayLabel">東京 → 富士 → 靜岡 → 濱松 → 江之島 → 鎌倉 → 成田</p>
-    </div>
-    <button id="installBtn" class="ghost" hidden>加入主畫面</button>
-  </header>
+<header class="topbar"><div><div class="eyebrow">2026 · TOKYO → FUJI → HAMAMATSU → KAMAKURA</div><h1>Japan Road Trip <span>2026</span></h1></div><button class="iconbtn" id="installBtn" hidden>＋</button></header>
+<main>
+<section id="homeView" class="view active">
+  <div class="hero-card"><div><span class="kicker" id="countdown">TRIP MODE</span><h2 id="heroTitle">🇯🇵 10天9夜日本自駕</h2><p id="heroSub">11/21–11/30｜東京・富士・靜岡・濱松・江之島・鎌倉・成田</p></div><div class="sun">◌</div></div>
+  <div class="dashboard-grid">
+    <button class="dash" data-go="today"><span>📅</span><div><b>TODAY</b><small id="homeTodayText">今日行程</small></div></button>
+    <button class="dash" data-go="hotels"><span>🏨</span><div><b>TONIGHT</b><small id="homeHotelText">今晚住宿</small></div></button>
+    <button class="dash" data-go="wallet"><span>💴</span><div><b>YEN</b><small id="homeRateText">更新匯率</small></div></button>
+    <button class="dash" data-go="expenses"><span>🧾</span><div><b>SPEND</b><small id="homeSpendText">本趟 ¥0</small></div></button>
+  </div>
+  <section class="paper"><div class="section-head"><h3>下一個行程</h3><button class="textlink" data-go="today">完整時間軸 →</button></div><div id="nextItem"></div></section>
+  <section class="paper"><div class="section-head"><h3>旅行工具</h3></div><div class="tool-grid">
+    <button data-go="cards">💳<small>刷哪張卡</small></button><button data-go="shopping">🛍<small>必買清單</small></button><button data-go="notes">📝<small>旅行日記</small></button><button data-go="guides">📚<small>景點導讀</small></button><button data-go="parking">🅿️<small>停車</small></button><button data-go="more">•••<small>更多</small></button>
+  </div></section>
+</section>
 
-  <main id="app">
-    <section id="homeView" class="view active">
-      <div class="quick-grid">
-        <button class="quick-card" data-go="today"><span>📅</span><b>TODAY</b><small>今日行程</small></button>
-        <button class="quick-card" data-go="hotels"><span>🏨</span><b>HOTELS</b><small>住宿</small></button>
-        <button class="quick-card" data-go="drive"><span>🚗</span><b>DRIVE</b><small>自駕・SA/PA</small></button>
-        <button class="quick-card" data-go="parking"><span>🅿️</span><b>PARKING</b><small>停車</small></button>
-        <button class="quick-card" data-go="planb"><span>🆘</span><b>PLAN B</b><small>備案</small></button>
-        <button class="quick-card" data-go="days"><span>🗓️</span><b>DAYS</b><small>每日行程</small></button>
-      </div>
+<section id="todayView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>ITINERARY</small><h2>今日行程</h2></div><select id="todaySelect"></select></div><div id="todayList" class="timeline"></div></section>
+<section id="daysView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>ALL DAYS</small><h2>每日行程</h2></div></div><div id="daysTabs" class="day-tabs"></div><div id="daysList" class="timeline"></div></section>
+<section id="driveView" class="view"><div class="page-title"><button class="back" data-go="more">‹</button><div><small>ROAD</small><h2>自駕・SA/PA</h2></div></div><div id="driveList" class="timeline"></div></section>
+<section id="parkingView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>PARKING</small><h2>停車・Plan B</h2></div></div><div id="parkingList" class="card-list"></div></section>
+<section id="hotelsView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>STAY</small><h2>住宿</h2></div></div><div class="privacy-banner">🔐 付款、訂單碼與退訂資料只存在這台裝置，不會寫進公開 GitHub。</div><div id="hotelList" class="hotel-grid"></div></section>
+<section id="planbView" class="view"><div class="page-title"><button class="back" data-go="more">‹</button><div><small>BACKUP</small><h2>Plan B</h2></div></div><div id="planbList" class="timeline"></div></section>
 
-      <section class="panel">
-        <div class="section-title"><h2>下一個行程</h2><span id="nextDayTag" class="pill"></span></div>
-        <div id="nextItem"></div>
-      </section>
+<section id="walletView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>MONEY</small><h2>日幣換算</h2></div></div>
+  <section class="paper rate-card"><div class="section-head"><h3>JPY → TWD</h3><span id="rateStamp" class="tag">尚未更新</span></div><div class="rate-row"><span>¥1</span><b>=</b><input id="rateInput" inputmode="decimal" value="0.203115"><span>NT$</span></div><div class="actions"><button id="fetchRate" class="primary">🌐 線上更新</button><button id="saveRate">儲存手動匯率</button></div><p class="hint">參考市場匯率；信用卡實際入帳仍依發卡銀行清算匯率與國外交易服務費。</p></section>
+  <section class="paper"><div class="converter"><label>日幣<input id="jpyInput" inputmode="numeric" placeholder="例如 12800"></label><div class="swap">⇄</div><label>台幣<input id="twdInput" inputmode="numeric" placeholder="自動換算"></label></div></section>
+  <button class="bigmenu" data-go="cards">💳 <span><b>信用卡攻略</b><small>比較日本刷卡回饋＋Visa/Mastercard/JCB</small></span><i>›</i></button>
+</section>
 
-      <section class="panel">
-        <div class="section-title"><h2>旅程重點</h2></div>
-        <div class="mini-notes">
-          <p>11/27 Suzuki 歷史館 <strong>15:00固定預約</strong></p>
-          <p>11/29 鎌倉：Plan A 無位就立刻切 Plan B，不繞圈。</p>
-          <p>11/29 晚上 ART HOTEL 成田 <strong>一定泡湯</strong>。</p>
-        </div>
-      </section>
-    </section>
+<section id="cardsView" class="view"><div class="page-title"><button class="back" data-go="wallet">‹</button><div><small>CARD GUIDE · UPDATED 2026/09/04</small><h2>日本刷哪張卡？</h2></div></div><div class="filterchips" id="cardFilters"><button class="active" data-filter="all">全部</button><button data-filter="5">優先</button><button data-filter="network">卡組織活動</button></div><div id="cardsList" class="card-list"></div></section>
 
-    <section id="todayView" class="view">
-      <div class="section-title"><h2>📅 今日行程</h2><select id="todaySelect"></select></div>
-      <div id="todayList" class="timeline"></div>
-    </section>
+<section id="expensesView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>EXPENSES</small><h2>旅行記帳</h2></div><button class="roundadd" id="addExpenseBtn">＋</button></div><div id="expenseSummary" class="summary-grid"></div><div id="expenseList" class="card-list"></div><div class="footer-actions"><button id="exportExpenses">匯出 CSV</button></div></section>
 
-    <section id="daysView" class="view">
-      <div class="section-title"><h2>🗓️ 每日行程</h2></div>
-      <div id="daysTabs" class="day-tabs"></div>
-      <div id="daysList" class="timeline"></div>
-    </section>
+<section id="shoppingView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>SHOPPING</small><h2>必買清單</h2></div><button class="roundadd" id="addShoppingBtn">＋</button></div><div class="filterchips" id="shoppingFilters"><button class="active" data-cat="all">全部</button><button data-cat="食品">🍪 食品</button><button data-cat="電器">🔌 電器</button><button data-cat="藥妝">💊 藥妝</button><button data-cat="雜貨">🧸 雜貨</button></div><div id="shoppingList" class="card-list"></div></section>
 
-    <section id="driveView" class="view">
-      <div class="section-title"><h2>🚗 自駕・SA／PA</h2></div>
-      <div id="driveList" class="timeline"></div>
-    </section>
+<section id="notesView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>JOURNAL</small><h2>旅行日記</h2></div><button class="roundadd" id="addNoteBtn">＋</button></div><div class="notice">📷 照片會自動縮小後存在手機本機；原始照片仍請保留在相簿。</div><div id="notesList" class="note-grid"></div><div class="footer-actions"><button id="makeMemoir" class="primary">📖 產生旅行回憶錄</button></div></section>
 
-    <section id="parkingView" class="view">
-      <div class="section-title"><h2>🅿️ 停車</h2></div>
-      <div id="parkingList" class="cards"></div>
-    </section>
+<section id="guidesView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>READ BEFORE YOU GO</small><h2>景點導讀</h2></div></div><div id="guideList" class="card-list"></div></section>
+<section id="guideDetailView" class="view"><div class="page-title"><button class="back" data-go="guides">‹</button><div><small>FIELD GUIDE</small><h2 id="guideTitle">導讀</h2></div></div><article id="guideBody" class="guide-paper"></article></section>
 
-    <section id="hotelsView" class="view">
-      <div class="section-title"><h2>🏨 住宿</h2></div>
-      <div id="hotelList" class="cards"></div>
-    </section>
+<section id="moreView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>TOOLS</small><h2>更多</h2></div></div><div class="menu-list"><button data-go="days">🗓️ <span>每日行程</span><i>›</i></button><button data-go="drive">🚗 <span>自駕・SA/PA</span><i>›</i></button><button data-go="planb">🆘 <span>Plan B</span><i>›</i></button><button data-go="checklist">✅ <span>出發前確認</span><i>›</i></button><button id="importPrivateBtn">🔐 <span>匯入私人訂房資料</span><i>›</i></button><button id="exportBackupBtn">💾 <span>匯出私人資料備份</span><i>›</i></button><button id="importBackupBtn">♻️ <span>還原備份</span><i>›</i></button></div><input type="file" id="importFile" accept="application/json" hidden><input type="file" id="backupFile" accept="application/json" hidden></section>
+<section id="checklistView" class="view"><div class="page-title"><button class="back" data-go="more">‹</button><div><small>PRE-TRIP</small><h2>出發前確認</h2></div></div><div id="checklist" class="checklist"></div><div class="footer-actions"><button id="resetChecklist">清除勾選</button></div></section>
+</main>
+<nav class="bottom-nav"><button data-go="home" class="active"><span>⌂</span><small>首頁</small></button><button data-go="today"><span>📅</span><small>行程</small></button><button data-go="wallet"><span>💴</span><small>錢包</small></button><button data-go="expenses"><span>🧾</span><small>記帳</small></button><button data-go="more"><span>•••</span><small>更多</small></button></nav>
 
-    <section id="planbView" class="view">
-      <div class="section-title"><h2>🆘 Plan B</h2></div>
-      <div id="planbList" class="timeline"></div>
-    </section>
-
-    <section id="checklistView" class="view">
-      <div class="section-title"><h2>✅ 出發前確認</h2></div>
-      <div id="checklist" class="checklist"></div>
-      <button id="resetChecklist" class="text-btn">清除勾選</button>
-    </section>
-  </main>
-
-  <nav class="bottom-nav">
-    <button data-go="home" class="active"><span>⌂</span><small>首頁</small></button>
-    <button data-go="today"><span>📅</span><small>今天</small></button>
-    <button data-go="days"><span>🗓️</span><small>每日</small></button>
-    <button data-go="parking"><span>🅿️</span><small>停車</small></button>
-    <button data-go="checklist"><span>✓</span><small>確認</small></button>
-  </nav>
-
-  <script src="data.js"></script>
-  <script src="app.js"></script>
-</body>
-</html>
+<dialog id="editDialog"><form method="dialog" id="editForm"><div class="modal-head"><h3 id="dialogTitle">新增</h3><button value="cancel" class="close">×</button></div><div id="dialogFields"></div><div class="modal-actions"><button value="cancel">取消</button><button value="default" id="dialogSave" class="primary">儲存</button></div></form></dialog>
+<script src="data.js"></script><script src="reference.js"></script><script src="db.js"></script><script src="app.js"></script>
+</body></html>
