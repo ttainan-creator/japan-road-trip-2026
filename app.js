@@ -4,7 +4,7 @@ const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2);
 const dt=s=>new Date(String(s).replace(' ','T')); const dateOf=r=>r.日期時間?.slice(0,10)||''; const timeOf=r=>r.日期時間?.slice(11,16)||'';
 const days=[...new Set(data.map(r=>r.Day))].sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1))); const dayDates={}; days.forEach(d=>{const r=data.find(x=>x.Day===d&&x.日期時間);dayDates[d]=r?dateOf(r):''});
-function go(name){$$('.view').forEach(v=>v.classList.remove('active')); const v=$('#'+name+'View'); if(v)v.classList.add('active'); $$('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===name)); window.scrollTo({top:0,behavior:'smooth'}); if(name==='expenses')renderExpenses(); if(name==='shopping')renderShopping(); if(name==='notes')renderNotes(); if(name==='hotels')renderHotels(); if(name==='wallet')refreshRateUI(); if(name==='cards'){renderCards();renderCardCompare();}}
+function go(name){$$('.view').forEach(v=>v.classList.remove('active')); const v=$('#'+name+'View'); if(v)v.classList.add('active'); $$('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===name)); window.scrollTo({top:0,behavior:'smooth'}); if(name==='expenses')renderExpenses(); if(name==='shopping')renderShopping(); if(name==='notes')renderNotes(); if(name==='hotels')renderHotels(); if(name==='wallet')refreshRateUI(); if(name==='cards'){renderCards();renderCardCompare();} if(name==='trip')renderTripMode();}
 $$('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
 function mapBtn(url){return url?`<a href="${esc(url)}" target="_blank" rel="noopener">📍 導航</a>`:''} function mapCode(code){return code?`<button onclick="copyText('${esc(code)}')">🗺 ${esc(code)}</button>`:''}
 window.copyText=async t=>{try{await navigator.clipboard.writeText(t);toast('已複製 '+t)}catch{prompt('複製',t)}};
@@ -17,6 +17,113 @@ function currentTripDay(){const now=new Date(),key=`${now.getFullYear()}-${pad(n
 const sel=$('#todaySelect');days.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=`${d} · ${dayDates[d].slice(5).replace('-','/')}`;sel.appendChild(o)});sel.value=currentTripDay();sel.addEventListener('change',renderToday);
 function renderToday(){const d=sel.value;renderList($('#todayList'),data.filter(r=>r.Day===d&&r['類型']!=='備案'));}
 renderToday(); const tabs=$('#daysTabs');days.forEach((d,i)=>{const b=document.createElement('button');b.textContent=`${d} ${dayDates[d].slice(5).replace('-','/')}`;b.dataset.day=d;b.className=i===0?'active':'';tabs.appendChild(b)});function renderDay(d){$$('#daysTabs button').forEach(b=>b.classList.toggle('active',b.dataset.day===d));renderList($('#daysList'),data.filter(r=>r.Day===d))}$$('#daysTabs button').forEach(b=>b.addEventListener('click',()=>renderDay(b.dataset.day)));renderDay('D01');
+
+// LIVE TRIP MODE
+const tripSel=$('#tripDaySelect');
+days.forEach(d=>{
+  const o=document.createElement('option');
+  o.value=d;o.textContent=`${d} · ${dayDates[d].slice(5).replace('-','/')}`;
+  tripSel.appendChild(o)
+});
+tripSel.value=currentTripDay();
+tripSel.addEventListener('change',renderTripMode);
+
+const itemKey=r=>`${r.Day}|${r.日期時間}|${r['名稱']}`;
+async function getTripDone(){
+  return (await TripDB.get('settings','tripDone'))?.value||{};
+}
+async function setTripDone(map){
+  await TripDB.put('settings',{id:'tripDone',value:map});
+}
+function hotelForDay(d){
+  const mmdd=dayDates[d]?.slice(5).replace('-','/');
+  return hotels.find(h=>h.dates.includes(mmdd))||null;
+}
+function tripCompact(r){
+  if(!r)return '<p class="note">今天沒有資料</p>';
+  return `<div class="trip-compact">
+    <b>${esc(timeOf(r))} · ${esc(r['名稱'])}</b>
+    ${r['車程／保留']?`<small>${esc(r['車程／保留'])}</small>`:''}
+    ${r['備註']?`<small>${esc(r['備註'])}</small>`:''}
+    <div class="actions">${mapBtn(r['Google Maps'])}${mapCode(r['Map Code'])}</div>
+  </div>`;
+}
+async function renderTripMode(){
+  if(!tripSel)return;
+  const d=tripSel.value||currentTripDay();
+  const rows=data.filter(r=>r.Day===d&&r['類型']!=='備案').sort((a,b)=>dt(a.日期時間)-dt(b.日期時間));
+  const backups=data.filter(r=>r.Day===d&&r['類型']==='備案').sort((a,b)=>dt(a.日期時間)-dt(b.日期時間));
+  const parking=rows.filter(r=>r['類型']==='停車');
+  const done=await getTripDone();
+  const completed=rows.filter(r=>done[itemKey(r)]).length;
+  const pct=rows.length?Math.round(completed/rows.length*100):0;
+  const selectedDate=dayDates[d];
+
+  $('#tripDateLabel').textContent=`${selectedDate} · ${d}`;
+  $('#tripDayTitle').textContent=rows[0]?.['地區']?`${d} · ${rows[0]['地區']}`:d;
+  $('#tripProgressText').textContent=completed?`已完成 ${completed}/${rows.length} 項`:'從下一站開始，照著走就好';
+  $('#tripProgressRing').style.setProperty('--p',pct);
+  $('#tripProgressRing span').textContent=`${pct}%`;
+
+  let next=rows.find(r=>!done[itemKey(r)])||rows[rows.length-1];
+  const todayKey=new Date().toISOString().slice(0,10);
+  if(selectedDate===todayKey){
+    const notDone=rows.filter(r=>!done[itemKey(r)]);
+    const upcoming=notDone.find(r=>dt(r.日期時間)>=new Date());
+    if(upcoming)next=upcoming;
+  }
+  $('#tripNextItem').innerHTML=next?itemHTML(next):'<div class="empty">今天行程完成 🎉</div>';
+  $('#tripQuickActions').innerHTML=next?`
+    ${next['Google Maps']?`<a class="primary-action" href="${esc(next['Google Maps'])}" target="_blank">📍 導航下一站</a>`:''}
+    <button onclick="toggleTripDoneByKey('${esc(itemKey(next))}')">${done[itemKey(next)]?'↺ 標為未完成':'✓ 完成這一站'}</button>
+    <button data-go="cards">💳 刷哪張卡</button>`:'';
+  $$('#tripQuickActions [data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
+
+  const nextDrive=rows.find(r=>r['類型']==='移動'&&!done[itemKey(r)])||rows.find(r=>r['類型']==='移動');
+  $('#tripDrive').innerHTML=tripCompact(nextDrive);
+
+  const h=hotelForDay(d);
+  if(h){
+    const b=h.booking||{};
+    $('#tripHotel').innerHTML=`<div class="trip-hotel" style="background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.62)),url('${h.image||''}')">
+      <div><b>${esc(h.name)}</b><small>${esc(h.area)} · ${esc(h.dates)}</small>
+      ${b.amount?`<small>${esc(b.platform||'')} · ${esc(b.amount)}</small>`:''}
+      <div class="actions">${mapBtn(h.map)}${mapCode(h.mapcode)}</div></div>
+    </div>`;
+  }else $('#tripHotel').innerHTML='<p class="note">今天沒有住宿資料</p>';
+
+  $('#tripParking').innerHTML=parking.length?parking.map(r=>`<div class="compact-row"><div><b>${esc(timeOf(r))} ${esc(r['名稱'])}</b><small>${esc(r['停車']||'')}</small></div><div class="actions">${mapBtn(r['Google Maps'])}${mapCode(r['Map Code'])}</div></div>`).join(''):'<p class="note">今天沒有另外設定停車卡。</p>';
+
+  $('#tripPlanB').innerHTML=backups.length?backups.map(r=>`<div class="compact-row backup"><div><b>${esc(r['名稱'])}</b><small>${esc(r['Plan B']||r['備註']||'')}</small></div></div>`).join(''):'<p class="note">今天沒有額外備案。</p>';
+
+  $('#tripTimeline').innerHTML=rows.map(r=>{
+    const key=itemKey(r),isDone=!!done[key];
+    return `<article class="trip-line ${isDone?'done':''}">
+      <button class="trip-check" onclick="toggleTripDoneByKey('${esc(key)}')">${isDone?'✓':'○'}</button>
+      <div class="trip-line-time">${esc(timeOf(r))}</div>
+      <div class="grow"><b>${esc(r['名稱'])}</b><div class="meta">${r['類型']?`<span class="pill">${esc(r['類型'])}</span>`:''}${r['地區']?`<span class="pill">${esc(r['地區'])}</span>`:''}</div>${r['備註']?`<small>${esc(r['備註'])}</small>`:''}</div>
+      <div class="actions">${mapBtn(r['Google Maps'])}</div>
+    </article>`
+  }).join('');
+
+  // Keep detailed itinerary selector in sync.
+  sel.value=d;
+}
+window.toggleTripDoneByKey=async key=>{
+  const done=await getTripDone();done[key]=!done[key];await setTripDone(done);renderTripMode();
+};
+$('#clearTripDone')?.addEventListener('click',async()=>{
+  const d=tripSel.value;
+  const done=await getTripDone();
+  data.filter(r=>r.Day===d).forEach(r=>delete done[itemKey(r)]);
+  await setTripDone(done);renderTripMode();toast('已清除這一天的完成狀態')
+});
+$('#tripFullTimeline')?.addEventListener('click',()=>{sel.value=tripSel.value;renderToday();go('today')});
+$('#tripAddExpense')?.addEventListener('click',()=>$('#addExpenseBtn').click());
+$('#tripScanReceipt')?.addEventListener('click',()=>$('#scanReceiptBtn').click());
+$('#tripAddNote')?.addEventListener('click',()=>$('#addNoteBtn').click());
+renderTripMode();
+
 renderList($('#driveList'),data.filter(r=>['移動','SA・PA'].includes(r['類型'])));renderList($('#planbList'),data.filter(r=>r['類型']==='備案'));
 $('#parkingList').innerHTML=data.filter(r=>r['類型']==='停車').map(r=>`<article class="card"><div class="big">${esc(r.Day)} · ${esc(dateOf(r).slice(5).replace('-','/'))} ${esc(timeOf(r))}</div><h3>${esc(r['名稱'])}</h3>${r['停車']?`<p class="note">${esc(r['停車'])}</p>`:''}${r['Plan B']?`<p class="note"><b>Plan B：</b>${esc(r['Plan B'])}</p>`:''}<div class="actions">${mapBtn(r['Google Maps'])}${mapCode(r['Map Code'])}</div></article>`).join('');
 function nextItem(){const now=new Date();let future=data.filter(r=>r.日期時間&&dt(r.日期時間)>=now&&r['類型']!=='備案').sort((a,b)=>dt(a.日期時間)-dt(b.日期時間));if(!future.length)future=data;$('#nextItem').innerHTML=itemHTML(future[0]);$('#homeTodayText').textContent=`${currentTripDay()} · ${dayDates[currentTripDay()].slice(5).replace('-','/')}`;const h=hotels.find(x=>x.dates.includes(dayDates[currentTripDay()].slice(5).replace('-','/')))||hotels[0];if(h)$('#homeHotelText').textContent=h.name;}
@@ -56,6 +163,7 @@ async function renderHotels(){
       ${b.meal?`<br>🍽 ${esc(b.meal)}`:''}
       ${b.payment?`<br>💳 ${esc(b.payment)}`:''}
       ${publicCancel?`<br>⏳ ${esc(publicCancel)}`:''}
+      ${b.statusNote?`<br>ℹ️ ${esc(b.statusNote)}`:''}
     </div>`:'';
     const privateBits=[];
     if(p?.card) privateBits.push(`💳 使用卡片：${esc(p.card)}`);

@@ -10,6 +10,7 @@
 <main>
 <section id="homeView" class="view active">
   <div class="hero-card"><div><span class="kicker" id="countdown">TRIP MODE</span><h2 id="heroTitle">🇯🇵 10天9夜日本自駕</h2><p id="heroSub">11/21–11/30｜東京・富士・靜岡・濱松・江之島・鎌倉・成田</p></div><div class="sun">◌</div></div>
+  <button class="trip-launch" data-go="trip"><span>▶</span><div><b>進入今日旅行模式</b><small>下一站・導航・停車・住宿・快速記帳集中在一頁</small></div><i>›</i></button>
   <div class="dashboard-grid">
     <button class="dash" data-go="today"><span>📅</span><div><b>TODAY</b><small id="homeTodayText">今日行程</small></div></button>
     <button class="dash" data-go="hotels"><span>🏨</span><div><b>TONIGHT</b><small id="homeHotelText">今晚住宿</small></div></button>
@@ -21,6 +22,62 @@
   <section class="paper"><div class="section-head"><h3>旅行工具</h3></div><div class="tool-grid">
     <button data-go="cards">💳<small>刷哪張卡</small></button><button data-go="shopping">🛍<small>必買清單</small></button><button data-go="notes">📝<small>旅行日記</small></button><button data-go="guides">📚<small>景點導讀</small></button><button data-go="parking">🅿️<small>停車</small></button><button data-go="more">•••<small>更多</small></button>
   </div></section>
+</section>
+
+
+<section id="tripView" class="view">
+  <div class="page-title trip-title">
+    <button class="back" data-go="home">‹</button>
+    <div><small>LIVE TRIP MODE</small><h2>今日旅行模式</h2></div>
+    <select id="tripDaySelect"></select>
+  </div>
+
+  <section class="trip-status">
+    <div><small id="tripDateLabel">TODAY</small><h3 id="tripDayTitle">D01</h3><p id="tripProgressText">準備出發</p></div>
+    <div class="progress-ring" id="tripProgressRing"><span>0%</span></div>
+  </section>
+
+  <section class="paper trip-next">
+    <div class="section-head"><h3>📍 下一站</h3><button class="textlink" id="tripFullTimeline">完整時間軸 →</button></div>
+    <div id="tripNextItem"></div>
+    <div class="quick-actions" id="tripQuickActions"></div>
+  </section>
+
+  <section class="trip-mini-grid">
+    <article class="paper mini-panel">
+      <div class="section-head"><h3>🚗 下一段駕駛</h3></div>
+      <div id="tripDrive"></div>
+    </article>
+    <article class="paper mini-panel">
+      <div class="section-head"><h3>🏨 今晚住宿</h3></div>
+      <div id="tripHotel"></div>
+    </article>
+  </section>
+
+  <section class="paper">
+    <div class="section-head"><h3>🅿️ 今日停車</h3><button class="textlink" data-go="parking">全部停車 →</button></div>
+    <div id="tripParking" class="compact-stack"></div>
+  </section>
+
+  <section class="paper">
+    <div class="section-head"><h3>🆘 今日備案</h3></div>
+    <div id="tripPlanB" class="compact-stack"></div>
+  </section>
+
+  <section class="paper">
+    <div class="section-head"><h3>⏱ 今日時間軸</h3><button class="textlink" id="clearTripDone">清除完成狀態</button></div>
+    <div id="tripTimeline" class="trip-timeline"></div>
+  </section>
+
+  <section class="paper quick-capture">
+    <div class="section-head"><h3>旅行途中快速新增</h3></div>
+    <div class="tool-grid">
+      <button id="tripAddExpense">🧾<small>新增支出</small></button>
+      <button id="tripScanReceipt">📷<small>掃描收據</small></button>
+      <button id="tripAddNote">📝<small>寫一句日記</small></button>
+      <button data-go="cards">💳<small>刷哪張卡</small></button>
+    </div>
+  </section>
 </section>
 
 <section id="todayView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>ITINERARY</small><h2>今日行程</h2></div><select id="todaySelect"></select></div><div id="todayList" class="timeline"></div></section>
@@ -97,7 +154,7 @@
 <section id="moreView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>TOOLS</small><h2>更多</h2></div></div><div class="menu-list"><button data-go="days">🗓️ <span>每日行程</span><i>›</i></button><button data-go="drive">🚗 <span>自駕・SA/PA</span><i>›</i></button><button data-go="planb">🆘 <span>Plan B</span><i>›</i></button><button data-go="checklist">✅ <span>出發前確認</span><i>›</i></button><button id="importPrivateBtn">🔐 <span>匯入私人訂房資料</span><i>›</i></button><button id="exportBackupBtn">💾 <span>匯出私人資料備份</span><i>›</i></button><button id="importBackupBtn">♻️ <span>還原備份</span><i>›</i></button></div><input type="file" id="importFile" accept="application/json" hidden><input type="file" id="backupFile" accept="application/json" hidden></section>
 <section id="checklistView" class="view"><div class="page-title"><button class="back" data-go="more">‹</button><div><small>PRE-TRIP</small><h2>出發前確認</h2></div></div><div id="checklist" class="checklist"></div><div class="footer-actions"><button id="resetChecklist">清除勾選</button></div></section>
 </main>
-<nav class="bottom-nav"><button data-go="home" class="active"><span>⌂</span><small>首頁</small></button><button data-go="today"><span>📅</span><small>行程</small></button><button data-go="wallet"><span>💴</span><small>錢包</small></button><button data-go="expenses"><span>🧾</span><small>記帳</small></button><button data-go="more"><span>•••</span><small>更多</small></button></nav>
+<nav class="bottom-nav"><button data-go="home" class="active"><span>⌂</span><small>首頁</small></button><button data-go="trip"><span>▶</span><small>旅行</small></button><button data-go="wallet"><span>💴</span><small>錢包</small></button><button data-go="expenses"><span>🧾</span><small>記帳</small></button><button data-go="more"><span>•••</span><small>更多</small></button></nav>
 
 <dialog id="editDialog"><form method="dialog" id="editForm"><div class="modal-head"><h3 id="dialogTitle">新增</h3><button value="cancel" class="close">×</button></div><div id="dialogFields"></div><div class="modal-actions"><button value="cancel">取消</button><button value="default" id="dialogSave" class="primary">儲存</button></div></form></dialog>
 <script src="data.js"></script><script src="reference.js"></script><script src="db.js"></script><script src="app.js"></script>
