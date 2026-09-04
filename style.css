@@ -8,3 +8,9 @@
 .expense-breakdown{margin-bottom:12px}.break-row{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:10px;margin:9px 0}.break-row b,.break-row small{display:block}.break-row b{font-size:11px}.break-row small{font-size:9px;color:var(--muted);margin-top:2px}.bar{height:8px;background:#eee4d8;border-radius:999px;overflow:hidden}.bar i{display:block;height:100%;background:var(--rust);border-radius:999px}
 .receipt-thumb{width:58px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
 @media(max-width:520px){.compare-form{grid-template-columns:1fr}.compare-form .primary{grid-column:auto}.expense-tools{align-items:flex-start;flex-direction:column}.break-row{grid-template-columns:90px 1fr}}
+
+.image-fix-note{margin-top:0}
+.shop-row.bought{opacity:.78}.shop-row.bought h3{text-decoration:line-through}
+.journal-highlight{outline:2px solid rgba(168,94,59,.55);outline-offset:-2px}
+#noteSummary{margin-bottom:12px}
+@media(max-width:520px){#notesView .footer-actions{flex-direction:column}#notesView .footer-actions button{width:100%}}

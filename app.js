@@ -74,7 +74,7 @@ async function renderHotels(){
         <div class="actions">
           ${mapBtn(h.map)}${mapCode(h.mapcode)}
           <button onclick="editHotelPrivate('${id}')">🔐 私人資料</button>
-          <button onclick="pickHotelCover('${id}')">🖼 更換封面</button>
+          <button onclick="pickHotelCover('${id}')">🖼 更換封面</button><button onclick="resetHotelCover('${id}')">↺ 內建封面</button>
         </div>
         <input id="cover-${id}" type="file" accept="image/*" hidden onchange="saveHotelCover('${id}',this.files[0])">
       </div>
@@ -220,9 +220,69 @@ $('#foreignFee')?.addEventListener('change',renderCardCompare);
 $$('#cardFilters button').forEach(b=>b.addEventListener('click',()=>{$$('#cardFilters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderCards(b.dataset.filter)}));
 loadCardProfile().then(()=>{renderCards();renderCardCompare()});
 // Shopping
-let shopCat='all';$('#addShoppingBtn').addEventListener('click',()=>openDialog('新增必買',[['name','商品','text',''],['category','分類','select','食品',['食品','電器','藥妝','雜貨']],['place','想在哪裡買','text',''],['budget','預算（日圓）','number',''],['note','備註','textarea','']],async v=>{await TripDB.put('shopping',{id:uid(),...v,bought:false,createdAt:new Date().toISOString()});renderShopping()}));
-async function renderShopping(){const rows=(await TripDB.all('shopping')).filter(x=>shopCat==='all'||x.category===shopCat);$('#shoppingList').innerHTML=rows.length?rows.map(x=>`<article class="card shop-row"><input type="checkbox" ${x.bought?'checked':''} onchange="toggleShop('${x.id}',this.checked)"><div class="grow"><h3>${esc(x.name)}</h3><div class="meta"><span class="pill">${esc(x.category)}</span>${x.place?`<span class="pill">${esc(x.place)}</span>`:''}</div>${x.budget?`<p class="note">預算 ¥${esc(x.budget)}</p>`:''}${x.note?`<p class="note">${esc(x.note)}</p>`:''}</div><button onclick="deleteShop('${x.id}')">×</button></article>`).join(''):'<div class="empty">還沒有必買品。想到什麼就按右上角 ＋。</div>'}
-window.toggleShop=async(id,v)=>{const x=await TripDB.get('shopping',id);x.bought=v;await TripDB.put('shopping',x);renderShopping()};window.deleteShop=async id=>{if(confirm('刪除這項？')){await TripDB.del('shopping',id);renderShopping()}};$$('#shoppingFilters button').forEach(b=>b.addEventListener('click',()=>{$$('#shoppingFilters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');shopCat=b.dataset.cat;renderShopping()}));
+let shopCat='all';
+$('#addShoppingBtn').addEventListener('click',()=>openDialog('新增必買',[
+  ['name','商品','text',''],
+  ['category','分類','select','食品',['食品','電器','藥妝','雜貨']],
+  ['place','想在哪裡買','text',''],
+  ['budget','預算（日圓）','number',''],
+  ['note','備註','textarea','']
+],async v=>{await TripDB.put('shopping',{id:uid(),...v,bought:false,actual:'',createdAt:new Date().toISOString()});renderShopping()}));
+
+async function renderShopping(){
+  const rows=(await TripDB.all('shopping')).filter(x=>shopCat==='all'||x.category===shopCat);
+  $('#shoppingList').innerHTML=rows.length?rows.map(x=>`<article class="card shop-row ${x.bought?'bought':''}">
+    <input type="checkbox" ${x.bought?'checked':''} onchange="toggleShop('${x.id}',this.checked)">
+    <div class="grow">
+      <h3>${esc(x.name)}</h3>
+      <div class="meta"><span class="pill">${esc(x.category)}</span>${x.place?`<span class="pill">${esc(x.place)}</span>`:''}</div>
+      ${x.budget?`<p class="note">預算 ¥${esc(x.budget)}</p>`:''}
+      ${x.actual?`<p class="note"><b>實買 ¥${Number(x.actual).toLocaleString()}</b></p>`:''}
+      ${x.note?`<p class="note">${esc(x.note)}</p>`:''}
+      <div class="actions">
+        ${x.bought?`<button onclick="shopToExpense('${x.id}')">🧾 加入記帳</button>`:''}
+        <button onclick="editShop('${x.id}')">編輯</button>
+      </div>
+    </div>
+    <button onclick="deleteShop('${x.id}')">×</button>
+  </article>`).join(''):'<div class="empty">還沒有必買品。想到什麼就按右上角 ＋，不需要再改程式碼。</div>'
+}
+window.toggleShop=async(id,v)=>{
+  const x=await TripDB.get('shopping',id);x.bought=v;
+  if(v && !x.actual){
+    const actual=prompt(`「${x.name}」實際買多少日圓？可先留空`,x.budget||'');
+    if(actual!==null)x.actual=actual;
+  }
+  await TripDB.put('shopping',x);renderShopping()
+};
+window.editShop=async id=>{
+  const x=await TripDB.get('shopping',id);
+  openDialog('編輯必買',[
+    ['name','商品','text',x.name||''],
+    ['category','分類','select',x.category||'食品',['食品','電器','藥妝','雜貨']],
+    ['place','購買地點','text',x.place||''],
+    ['budget','預算（日圓）','number',x.budget||''],
+    ['actual','實際金額（日圓）','number',x.actual||''],
+    ['note','備註','textarea',x.note||'']
+  ],async v=>{await TripDB.put('shopping',{...x,...v});renderShopping()})
+};
+window.shopToExpense=async id=>{
+  const x=await TripDB.get('shopping',id);
+  openDialog('把必買品加入記帳',[
+    ['date','日期','date',new Date().toISOString().slice(0,10)],
+    ['merchant','店家／項目','text',x.name||''],
+    ['category','分類','select','購物',['餐飲','住宿','購物','交通','景點','其他']],
+    ['jpy','日幣金額','number',x.actual||x.budget||''],
+    ['card','付款方式／卡片','select','現金',['現金',...ref.cards.map(c=>c.name),'其他']],
+    ['note','備註','textarea',x.place?`購買地點：${x.place}`:'']
+  ],async v=>{
+    v.twd=v.jpy?Math.round(Number(v.jpy)*rate):'';
+    await TripDB.put('expenses',{id:uid(),...v,createdAt:new Date().toISOString()});
+    toast('已加入旅行記帳');renderShopping();renderExpenses()
+  })
+};
+window.deleteShop=async id=>{if(confirm('刪除這項？')){await TripDB.del('shopping',id);renderShopping()}};
+$$('#shoppingFilters button').forEach(b=>b.addEventListener('click',()=>{$$('#shoppingFilters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');shopCat=b.dataset.cat;renderShopping()}));
 // Expenses
 const expenseCardOptions=['現金',...ref.cards.map(c=>c.name),'其他'];
 $('#addExpenseBtn').addEventListener('click',()=>openDialog('新增支出',[
@@ -327,10 +387,96 @@ $('#receiptInput')?.addEventListener('change',async e=>{
   }finally{e.target.value=''}
 });
 // Notes
-$('#addNoteBtn').addEventListener('click',()=>openDialog('新增旅行日記',[['date','日期','date',new Date().toISOString().slice(0,10)],['place','地點','text',''],['text','今天想記住什麼？','textarea',''],['rating','評分','select','5',['5','4','3','2','1']],['photo','照片（選填）','file','']],async v=>{let photo='';if(v.photoFile)photo=await compressImage(v.photoFile,1400,.72);delete v.photoFile;await TripDB.put('notes',{id:uid(),...v,photo,createdAt:new Date().toISOString()});renderNotes()}));
-async function renderNotes(){const rows=(await TripDB.all('notes')).sort((a,b)=>String(b.date).localeCompare(String(a.date)));$('#notesList').innerHTML=rows.length?rows.map(x=>`<article class="journal">${x.photo?`<img src="${x.photo}" alt="">`:''}<div class="journal-body"><div class="big">${esc(x.date||'')} · ${esc(x.place||'')}</div><h3>${'★'.repeat(Number(x.rating||0))}</h3><p>${esc(x.text||'')}</p><div class="actions"><button onclick="deleteNote('${x.id}')">刪除</button></div></div></article>`).join(''):'<div class="empty">旅行日記還是空白。出發後，每天留一句話也很值得。</div>'}
+$('#addNoteBtn').addEventListener('click',()=>openDialog('新增旅行日記',[
+  ['date','日期','date',new Date().toISOString().slice(0,10)],
+  ['place','地點','text',''],
+  ['text','今天想記住什麼？','textarea',''],
+  ['rating','評分','select','5',['5','4','3','2','1']],
+  ['highlight','回憶錄','select','一般',['一般','⭐ 精選']],
+  ['photo','照片（選填）','file','']
+],async v=>{
+  let photo='';if(v.photoFile)photo=await compressImage(v.photoFile,1500,.72);delete v.photoFile;
+  await TripDB.put('notes',{id:uid(),...v,photo,createdAt:new Date().toISOString()});renderNotes()
+}));
+
+async function renderNotes(){
+  const rows=(await TripDB.all('notes')).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const photos=rows.filter(x=>x.photo).length, highlights=rows.filter(x=>String(x.highlight||'').includes('精選')).length;
+  $('#noteSummary').innerHTML=`<div class="summary"><small>日記</small><b>${rows.length} 篇</b></div><div class="summary"><small>小照片</small><b>${photos} 張</b></div><div class="summary"><small>精選回憶</small><b>${highlights}</b></div><div class="summary"><small>可匯出</small><b>HTML / PDF</b></div>`;
+  $('#notesList').innerHTML=rows.length?rows.map(x=>`<article class="journal ${String(x.highlight||'').includes('精選')?'journal-highlight':''}">
+    ${x.photo?`<img src="${x.photo}" alt="">`:''}
+    <div class="journal-body">
+      <div class="big">${esc(x.date||'')} · ${esc(x.place||'')} ${String(x.highlight||'').includes('精選')?'· ⭐ 精選':''}</div>
+      <h3>${'★'.repeat(Number(x.rating||0))}</h3>
+      <p>${esc(x.text||'')}</p>
+      <div class="actions"><button onclick="editNote('${x.id}')">編輯</button><button onclick="deleteNote('${x.id}')">刪除</button></div>
+    </div>
+  </article>`).join(''):'<div class="empty">旅行日記還是空白。出發後每天留一句話，也能做成完整回憶錄。</div>'
+}
+window.editNote=async id=>{
+  const x=await TripDB.get('notes',id);
+  openDialog('編輯旅行日記',[
+    ['date','日期','date',x.date||''],
+    ['place','地點','text',x.place||''],
+    ['text','想記住什麼？','textarea',x.text||''],
+    ['rating','評分','select',x.rating||'5',['5','4','3','2','1']],
+    ['highlight','回憶錄','select',x.highlight||'一般',['一般','⭐ 精選']],
+    ['photo','更換照片（不選則保留原圖）','file','']
+  ],async v=>{
+    let photo=x.photo||'';if(v.photoFile)photo=await compressImage(v.photoFile,1500,.72);delete v.photoFile;
+    await TripDB.put('notes',{...x,...v,photo});renderNotes()
+  })
+};
 window.deleteNote=async id=>{if(confirm('刪除這篇日記？')){await TripDB.del('notes',id);renderNotes()}};
-$('#makeMemoir').addEventListener('click',async()=>{const notes=(await TripDB.all('notes')).sort((a,b)=>String(a.date).localeCompare(String(b.date))),expenses=await TripDB.all('expenses');const total=expenses.reduce((s,x)=>s+Number(x.jpy||0),0);const cats=['餐飲','住宿','購物','交通','景點','其他'];const breakdown=cats.map(c=>[c,expenses.filter(x=>x.category===c).reduce((s,x)=>s+Number(x.jpy||0),0)]).filter(x=>x[1]>0);const w=window.open('','_blank');w.document.write(`<html><head><title>Japan Road Trip 2026 回憶錄</title><style>body{font-family:serif;max-width:760px;margin:50px auto;color:#29231d;line-height:1.8;padding:0 20px}h1{font-size:36px}article{page-break-inside:avoid;margin:36px 0}img{max-width:100%;border-radius:14px}.meta{color:#8a6a55}button{padding:10px 14px}</style></head><body><h1>🇯🇵 Japan Road Trip 2026</h1><p>2026/11/21–11/30 · 10 Days 9 Nights</p><p><b>旅行記帳累計：</b>¥${total.toLocaleString()}</p><p>${breakdown.map(x=>`${x[0]} ¥${x[1].toLocaleString()}`).join(' · ')}</p><button onclick="print()">列印／另存 PDF</button>${notes.map(n=>`<article><p class="meta">${esc(n.date)} · ${esc(n.place)} · ${'★'.repeat(Number(n.rating||0))}</p>${n.photo?`<img src="${n.photo}">`:''}<p>${esc(n.text).replace(/\n/g,'<br>')}</p></article>`).join('')}</body></html>`);w.document.close()});
+
+async function buildMemoirHTML(){
+  const notes=(await TripDB.all('notes')).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const expenses=await TripDB.all('expenses');
+  const shopping=await TripDB.all('shopping');
+  const total=expenses.reduce((s,x)=>s+Number(x.jpy||0),0);
+  const totalTwd=expenses.reduce((s,x)=>s+Number(x.twd||0),0);
+  const cats=['餐飲','住宿','購物','交通','景點','其他'];
+  const breakdown=cats.map(c=>[c,expenses.filter(x=>x.category===c).reduce((s,x)=>s+Number(x.jpy||0),0)]).filter(x=>x[1]>0);
+  const bought=shopping.filter(x=>x.bought);
+  const grouped=notes.reduce((o,n)=>{const k=n.date||'未分類';(o[k]??=[]).push(n);return o},{});
+  const daySections=Object.entries(grouped).map(([date,arr])=>`<section class="day">
+    <h2>${esc(date)}</h2>
+    ${arr.map(n=>`<article class="${String(n.highlight||'').includes('精選')?'highlight':''}">
+      <p class="meta">${esc(n.place||'')} · ${'★'.repeat(Number(n.rating||0))} ${String(n.highlight||'').includes('精選')?'· ⭐ 精選':''}</p>
+      ${n.photo?`<img src="${n.photo}">`:''}
+      <p>${esc(n.text||'').replace(/\n/g,'<br>')}</p>
+    </article>`).join('')}
+  </section>`).join('');
+  return `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+  <title>Japan Road Trip 2026 回憶錄</title><style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;max-width:820px;margin:0 auto;padding:44px 24px;color:#29231d;line-height:1.8;background:#faf7f1}
+  .cover{padding:50px 0 35px;border-bottom:1px solid #dccfc0}.cover h1{font-family:Georgia,serif;font-size:42px;margin:0}.cover p{color:#75695e}
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:25px 0}.stat{background:white;border-radius:16px;padding:16px}.stat small{display:block;color:#806f60}.stat b{font-size:22px}
+  .day{margin:48px 0}.day>h2{font-family:Georgia,serif;border-bottom:1px solid #dccfc0;padding-bottom:7px}
+  article{page-break-inside:avoid;background:white;padding:16px;border-radius:18px;margin:16px 0}article.highlight{border:2px solid #bf7a53}
+  img{width:100%;max-height:620px;object-fit:contain;border-radius:14px}.meta{font-size:13px;color:#8b684f}
+  .small{font-size:13px;color:#75695e}.print{position:sticky;top:10px;float:right;padding:10px 14px;border:0;border-radius:10px;background:#9d5c3b;color:#fff}
+  @media print{.print{display:none}body{background:white;padding:0}}
+  </style></head><body>
+  <button class="print" onclick="print()">列印／另存 PDF</button>
+  <section class="cover"><p>2026/11/21–11/30 · 10 Days 9 Nights</p><h1>🇯🇵 Japan Road Trip 2026</h1><p>東京 · 富士 · 靜岡 · 濱松 · 江之島 · 鎌倉 · 成田</p></section>
+  <div class="stats"><div class="stat"><small>旅行日記</small><b>${notes.length} 篇</b></div><div class="stat"><small>小照片</small><b>${notes.filter(n=>n.photo).length} 張</b></div><div class="stat"><small>累計日幣</small><b>¥${total.toLocaleString()}</b></div><div class="stat"><small>累計台幣</small><b>NT$${Math.round(totalTwd).toLocaleString()}</b></div></div>
+  ${breakdown.length?`<p class="small"><b>花費分類：</b>${breakdown.map(x=>`${x[0]} ¥${x[1].toLocaleString()}`).join(' · ')}</p>`:''}
+  ${bought.length?`<p class="small"><b>買到的東西：</b>${bought.map(x=>esc(x.name)).join('、')}</p>`:''}
+  ${daySections||'<p>尚未建立旅行日記。</p>'}
+  <hr><p class="small">由 Japan Road Trip 2026 PWA 產生。原始高畫質照片仍保留於手機相簿。</p>
+  </body></html>`;
+}
+$('#previewMemoir')?.addEventListener('click',async()=>{
+  const html=await buildMemoirHTML();const w=window.open('','_blank');
+  if(!w){toast('瀏覽器阻擋新視窗，請改用下載 HTML');return}
+  w.document.open();w.document.write(html);w.document.close()
+});
+$('#downloadMemoir')?.addEventListener('click',async()=>{
+  const html=await buildMemoirHTML();
+  downloadBlob(new Blob([html],{type:'text/html;charset=utf-8'}),'Japan-Road-Trip-2026-Memoir.html');
+  toast('回憶錄 HTML 已下載')
+});
 // Guides
 $('#guideList').innerHTML=ref.guides.map(g=>`<article class="card"><div class="big">${esc(g.day)} · 約 ${g.minutes} 分鐘</div><h3>${esc(g.title)}</h3><p class="note">${esc(g.intro.slice(0,75))}…</p><div class="actions"><button onclick="openGuide('${g.id}')">開始閱讀 →</button></div></article>`).join('');window.openGuide=id=>{const g=ref.guides.find(x=>x.id===id);$('#guideTitle').textContent=g.title;$('#guideBody').innerHTML=`<p class="lead">${esc(g.intro)}</p><h3>現場請特別看</h3><ul>${g.points.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><blockquote><b>帶著這個問題去看：</b><br>${esc(g.question)}</blockquote>`;go('guideDetail')};
 // Checklist

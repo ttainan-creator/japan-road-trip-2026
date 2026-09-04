@@ -27,7 +27,7 @@
 <section id="daysView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>ALL DAYS</small><h2>每日行程</h2></div></div><div id="daysTabs" class="day-tabs"></div><div id="daysList" class="timeline"></div></section>
 <section id="driveView" class="view"><div class="page-title"><button class="back" data-go="more">‹</button><div><small>ROAD</small><h2>自駕・SA/PA</h2></div></div><div id="driveList" class="timeline"></div></section>
 <section id="parkingView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>PARKING</small><h2>停車・Plan B</h2></div></div><div id="parkingList" class="card-list"></div></section>
-<section id="hotelsView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>STAY</small><h2>住宿</h2></div></div><div class="privacy-banner">🔐 GitHub 只放住宿平台、金額、付款狀態與取消期限；訂房號碼、驗證碼、實際使用卡片與私人備註仍只存在這台裝置。</div><div id="hotelList" class="hotel-grid"></div></section>
+<section id="hotelsView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>STAY</small><h2>住宿</h2></div></div><div class="privacy-banner">🔐 GitHub 只放住宿平台、金額、付款狀態與取消期限；訂房號碼、驗證碼、實際使用卡片與私人備註仍只存在這台裝置。</div><div class="notice image-fix-note">🖼 V2.3 起六間飯店封面直接內嵌在 App，不再依賴 GitHub 的 assets 資料夾；如果你曾在 App 內手動換過封面，仍會優先顯示你的本機照片。</div><div id="hotelList" class="hotel-grid"></div></section>
 <section id="planbView" class="view"><div class="page-title"><button class="back" data-go="more">‹</button><div><small>BACKUP</small><h2>Plan B</h2></div></div><div id="planbList" class="timeline"></div></section>
 
 <section id="walletView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>MONEY</small><h2>日幣換算</h2></div></div>
@@ -80,7 +80,16 @@
 
 <section id="shoppingView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>SHOPPING</small><h2>必買清單</h2></div><button class="roundadd" id="addShoppingBtn">＋</button></div><div class="filterchips" id="shoppingFilters"><button class="active" data-cat="all">全部</button><button data-cat="食品">🍪 食品</button><button data-cat="電器">🔌 電器</button><button data-cat="藥妝">💊 藥妝</button><button data-cat="雜貨">🧸 雜貨</button></div><div id="shoppingList" class="card-list"></div></section>
 
-<section id="notesView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>JOURNAL</small><h2>旅行日記</h2></div><button class="roundadd" id="addNoteBtn">＋</button></div><div class="notice">📷 照片會自動縮小後存在手機本機；原始照片仍請保留在相簿。</div><div id="notesList" class="note-grid"></div><div class="footer-actions"><button id="makeMemoir" class="primary">📖 產生旅行回憶錄</button></div></section>
+<section id="notesView" class="view">
+  <div class="page-title"><button class="back" data-go="home">‹</button><div><small>JOURNAL</small><h2>旅行日記</h2></div><button class="roundadd" id="addNoteBtn">＋</button></div>
+  <div class="notice">📷 照片會壓縮後存在這台裝置；原始照片請留在相簿。回國後可把日記、小照片、花費與已購清單做成回憶錄。</div>
+  <div id="noteSummary" class="summary-grid"></div>
+  <div id="notesList" class="note-grid"></div>
+  <div class="footer-actions">
+    <button id="previewMemoir" class="primary">📖 預覽／列印回憶錄</button>
+    <button id="downloadMemoir">⬇️ 下載回憶錄 HTML</button>
+  </div>
+</section>
 
 <section id="guidesView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>READ BEFORE YOU GO</small><h2>景點導讀</h2></div></div><div id="guideList" class="card-list"></div></section>
 <section id="guideDetailView" class="view"><div class="page-title"><button class="back" data-go="guides">‹</button><div><small>FIELD GUIDE</small><h2 id="guideTitle">導讀</h2></div></div><article id="guideBody" class="guide-paper"></article></section>
