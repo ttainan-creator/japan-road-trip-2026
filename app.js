@@ -1,15 +1,21 @@
-const data=window.TRIP_DATA||[], hotels=window.HOTELS||[], ref=window.REFERENCE_DATA||{cards:[],networkPromos:[],guides:[]};
+const data=window.TRIP_DATA||[], hotels=window.HOTELS||[], flights=window.FLIGHTS||[], ref=window.REFERENCE_DATA||{cards:[],networkPromos:[],guides:[]};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], pad=n=>String(n).padStart(2,'0');
 const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2);
 const dt=s=>new Date(String(s).replace(' ','T')); const dateOf=r=>r.日期時間?.slice(0,10)||''; const timeOf=r=>r.日期時間?.slice(11,16)||'';
 const days=[...new Set(data.map(r=>r.Day))].sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1))); const dayDates={}; days.forEach(d=>{const r=data.find(x=>x.Day===d&&x.日期時間);dayDates[d]=r?dateOf(r):''});
-function go(name){$$('.view').forEach(v=>v.classList.remove('active')); const v=$('#'+name+'View'); if(v)v.classList.add('active'); $$('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===name)); window.scrollTo({top:0,behavior:'smooth'}); if(name==='expenses')renderExpenses(); if(name==='shopping')renderShopping(); if(name==='notes')renderNotes(); if(name==='hotels')renderHotels(); if(name==='wallet')refreshRateUI(); if(name==='cards'){renderCards();renderCardCompare();} if(name==='trip')renderTripMode();}
+function go(name){$$('.view').forEach(v=>v.classList.remove('active')); const v=$('#'+name+'View'); if(v)v.classList.add('active'); $$('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===name)); window.scrollTo({top:0,behavior:'smooth'}); if(name==='expenses')renderExpenses(); if(name==='shopping')renderShopping(); if(name==='notes')renderNotes(); if(name==='hotels')renderHotels(); if(name==='wallet')refreshRateUI(); if(name==='cards'){renderCards();renderCardCompare();} if(name==='trip')renderTripMode(); if(name==='flights')renderFlights();}
 $$('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
-function mapBtn(url){return url?`<a href="${esc(url)}" target="_blank" rel="noopener">📍 導航</a>`:''} function mapCode(code){return code?`<button onclick="copyText('${esc(code)}')">🗺 ${esc(code)}</button>`:''}
+function mapBtn(url){return url?`<a href="${esc(url)}" target="_blank" rel="noopener">📍 導航</a>`:''}
+function mapCode(code,status=''){
+  if(code)return `<button class="mapcode-btn" onclick="copyText('${esc(code)}')" title="Mapion 核實">🗺 ${esc(code)}</button>`;
+  if(status)return `<span class="mapcode-na" title="${esc(status)}">🗺 Map Code：—</span>`;
+  return '';
+}
+function rowMapActions(r){return `${mapBtn(r['Google Maps'])}${r['Google Maps']?mapCode(r['Map Code'],r['Map Code Status']):mapCode(r['Map Code'])}`;}
 window.copyText=async t=>{try{await navigator.clipboard.writeText(t);toast('已複製 '+t)}catch{prompt('複製',t)}};
 function toast(t){const d=document.createElement('div');d.textContent=t;d.style='position:fixed;left:50%;bottom:95px;transform:translateX(-50%);background:#28231e;color:white;padding:10px 14px;border-radius:999px;font-size:12px;z-index:99';document.body.appendChild(d);setTimeout(()=>d.remove(),1600)}
-function itemHTML(r){const notes=[r['車程／保留'],r['停車'],r['Plan B'],r['備註']].filter(Boolean).slice(0,3);return `<article class="item"><div class="time">${esc(timeOf(r))}</div><div><h3>${esc(r['名稱'])}</h3><div class="meta">${r['類型']?`<span class="pill">${esc(r['類型'])}</span>`:''}${r['地區']?`<span class="pill">${esc(r['地區'])}</span>`:''}</div>${notes.map(n=>`<p class="note">${esc(n)}</p>`).join('')}<div class="actions">${mapBtn(r['Google Maps'])}${mapCode(r['Map Code'])}</div></div></article>`}
+function itemHTML(r){const notes=[r['車程／保留'],r['停車'],r['Plan B'],r['備註']].filter(Boolean).slice(0,3);return `<article class="item"><div class="time">${esc(timeOf(r))}</div><div><h3>${esc(r['名稱'])}</h3><div class="meta">${r['類型']?`<span class="pill">${esc(r['類型'])}</span>`:''}${r['地區']?`<span class="pill">${esc(r['地區'])}</span>`:''}</div>${notes.map(n=>`<p class="note">${esc(n)}</p>`).join('')}<div class="actions">${rowMapActions(r)}</div></div></article>`}
 function renderList(el,rows){el.innerHTML=rows.length?rows.map(itemHTML).join(''):'<div class="empty">目前沒有資料</div>'}
 function currentTripDay(){const now=new Date(),key=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;return days.find(d=>dayDates[d]===key)||'D01'}
 // countdown/home
@@ -17,6 +23,93 @@ function currentTripDay(){const now=new Date(),key=`${now.getFullYear()}-${pad(n
 const sel=$('#todaySelect');days.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=`${d} · ${dayDates[d].slice(5).replace('-','/')}`;sel.appendChild(o)});sel.value=currentTripDay();sel.addEventListener('change',renderToday);
 function renderToday(){const d=sel.value;renderList($('#todayList'),data.filter(r=>r.Day===d&&r['類型']!=='備案'));}
 renderToday(); const tabs=$('#daysTabs');days.forEach((d,i)=>{const b=document.createElement('button');b.textContent=`${d} ${dayDates[d].slice(5).replace('-','/')}`;b.dataset.day=d;b.className=i===0?'active':'';tabs.appendChild(b)});function renderDay(d){$$('#daysTabs button').forEach(b=>b.classList.toggle('active',b.dataset.day===d));renderList($('#daysList'),data.filter(r=>r.Day===d))}$$('#daysTabs button').forEach(b=>b.addEventListener('click',()=>renderDay(b.dataset.day)));renderDay('D01');
+
+
+// FLIGHTS
+function flightSeatSettingId(f){return `flightSeat_${f.id}`}
+async function flightSeatDone(f){
+  if(f.seat==='已選位')return true;
+  return !!(await TripDB.get('settings',flightSeatSettingId(f)))?.value;
+}
+function flightLocalDateTime(f){
+  // for sorting by departure local date; only two fixed flights here
+  const tz=f.id==='BR196'?'+08:00':'+09:00';
+  return new Date(`${f.date}T${f.depart}:00${tz}`);
+}
+function seatCountdownText(f,done){
+  if(done)return '✅ 已選位';
+  if(!f.seatReminder)return '';
+  const t=new Date(f.seatReminder), now=new Date(), ms=t-now;
+  if(ms<=0)return '🔴 已進入起飛前 48 小時：請選位';
+  const d=Math.floor(ms/86400000), h=Math.floor((ms%86400000)/3600000);
+  return `⏳ 距選位提醒 ${d} 天 ${h} 小時`;
+}
+function flightMiniHTML(f){
+  return `<article class="flight-mini">
+    <div class="flight-code"><small>${esc(f.direction)}</small><b>${esc(f.flight)}</b></div>
+    <div class="flight-route">
+      <div><b>${esc(f.depart)}</b><span>${esc(f.from)}</span><small>${esc(f.fromTerminal)}</small></div>
+      <i>→</i>
+      <div><b>${esc(f.arrive)}</b><span>${esc(f.to)}</span><small>${esc(f.toTerminal)}</small></div>
+    </div>
+  </article>`;
+}
+async function renderFlights(){
+  const seatMap={};
+  for(const f of flights)seatMap[f.id]=await flightSeatDone(f);
+  const out=flights.find(f=>f.id==='BR196');
+  const outDone=out?seatMap[out.id]:true;
+  const rem=$('#flightReminder');
+  if(rem && out){
+    rem.innerHTML=`<section class="paper flight-reminder ${outDone?'done':''}">
+      <div><small>BR196 去程選位</small><b>${seatCountdownText(out,outDone)}</b>
+      <p>提醒時間：2026/11/19 15:20（台灣時間，起飛前48小時）</p></div>
+      <div class="actions">
+        ${outDone?`<button id="undoSeatBtn">↺ 改成未選位</button>`:`<button class="primary" id="markSeatBtn">✓ 我已選位</button>`}
+        <button id="seatIcsBtn">📅 加入行事曆提醒</button>
+      </div>
+    </section>`;
+    $('#markSeatBtn')?.addEventListener('click',async()=>{await TripDB.put('settings',{id:flightSeatSettingId(out),value:true});renderFlights();toast('BR196 已標記完成選位')});
+    $('#undoSeatBtn')?.addEventListener('click',async()=>{await TripDB.put('settings',{id:flightSeatSettingId(out),value:false});renderFlights()});
+    $('#seatIcsBtn')?.addEventListener('click',()=>downloadSeatReminderICS(out));
+  }
+  $('#flightList').innerHTML=flights.map(f=>{
+    const done=seatMap[f.id];
+    const mapcode=f.mapcode?mapCode(f.mapcode):'';
+    return `<article class="flight-card">
+      <div class="flight-card-head"><div><small>${esc(f.direction)} · ${esc(f.airline)}</small><h3>${esc(f.flight)}</h3></div><span class="seat-tag ${done?'done':''}">${done?'已選位':'待選位'}</span></div>
+      <div class="flight-route bigroute">
+        <div><b>${esc(f.depart)}</b><span>${esc(f.from)}</span><small>${esc(f.fromTerminal)} · ${esc(f.departTZ)}</small></div>
+        <i>✈</i>
+        <div><b>${esc(f.arrive)}</b><span>${esc(f.to)}</span><small>${esc(f.toTerminal)} · ${esc(f.arriveTZ)}</small></div>
+      </div>
+      <div class="flight-notes"><p>📅 ${esc(f.date)}</p><p>🧳 ${esc(f.airportTarget)}</p>${f.id==='BR196'?`<p>💺 ${esc(seatCountdownText(f,done))}</p>`:'<p>💺 回程已選好座位</p>'}</div>
+      <div class="actions">${mapBtn(f.map)}${mapcode}<button onclick="downloadFlightICS('${f.id}')">📅 航班加入行事曆</button></div>
+    </article>`;
+  }).join('');
+}
+function icsEscape(s){return String(s).replace(/\\/g,'\\\\').replace(/,/g,'\\,').replace(/;/g,'\\;').replace(/\n/g,'\\n')}
+function dlICS(name,body){downloadBlob(new Blob([body],{type:'text/calendar;charset=utf-8'}),name)}
+window.downloadFlightICS=id=>{
+  const f=flights.find(x=>x.id===id);if(!f)return;
+  const utc = id==='BR196'
+    ? {s:'20261121T072000Z',e:'20261121T102000Z'}
+    : {s:'20261130T112000Z',e:'20261130T152500Z'};
+  const body=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Japan Road Trip 2026//Flight//ZH-TW\r\nBEGIN:VEVENT\r\nUID:${id}-2026@japantrip\r\nDTSTART:${utc.s}\r\nDTEND:${utc.e}\r\nSUMMARY:${icsEscape(`${f.airline} ${f.flight} ${f.from} → ${f.to}`)}\r\nDESCRIPTION:${icsEscape(`${f.fromTerminal} → ${f.toTerminal}。${f.airportTarget}。航班資訊以航空公司當日公告為準。`)}\r\nBEGIN:VALARM\r\nTRIGGER:-PT3H\r\nACTION:DISPLAY\r\nDESCRIPTION:${icsEscape(`${f.flight} 起飛前3小時提醒`)}\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n`;
+  dlICS(`${id}-2026.ics`,body);
+}
+function downloadSeatReminderICS(f){
+  const body=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Japan Road Trip 2026//Seat Reminder//ZH-TW\r\nBEGIN:VEVENT\r\nUID:seat-${f.id}-2026@japantrip\r\nDTSTART:20261119T072000Z\r\nDTEND:20261119T075000Z\r\nSUMMARY:${icsEscape(`${f.id} 去程選位提醒`)}\r\nDESCRIPTION:${icsEscape('起飛前48小時。記得進入長榮航空完成BR196座位選擇。')}\r\nBEGIN:VALARM\r\nTRIGGER:PT0M\r\nACTION:DISPLAY\r\nDESCRIPTION:${icsEscape(`${f.id} 現在可以處理選位`)}\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n`;
+  dlICS(`BR196-seat-reminder.ics`,body);
+}
+function renderHomeFlight(){
+  const el=$('#homeFlightText');if(!el||!flights.length)return;
+  const now=new Date();
+  const future=flights.filter(f=>flightLocalDateTime(f)>=now).sort((a,b)=>flightLocalDateTime(a)-flightLocalDateTime(b));
+  const f=future[0]||flights[flights.length-1];
+  el.textContent=`${f.flight} · ${f.date.slice(5).replace('-','/')} ${f.depart} ${f.from} → ${f.to}`;
+}
+renderHomeFlight();
 
 // LIVE TRIP MODE
 const tripSel=$('#tripDaySelect');
@@ -45,7 +138,7 @@ function tripCompact(r){
     <b>${esc(timeOf(r))} · ${esc(r['名稱'])}</b>
     ${r['車程／保留']?`<small>${esc(r['車程／保留'])}</small>`:''}
     ${r['備註']?`<small>${esc(r['備註'])}</small>`:''}
-    <div class="actions">${mapBtn(r['Google Maps'])}${mapCode(r['Map Code'])}</div>
+    <div class="actions">${rowMapActions(r)}</div>
   </div>`;
 }
 async function renderTripMode(){
@@ -58,6 +151,13 @@ async function renderTripMode(){
   const completed=rows.filter(r=>done[itemKey(r)]).length;
   const pct=rows.length?Math.round(completed/rows.length*100):0;
   const selectedDate=dayDates[d];
+  const todaysFlight=flights.find(f=>f.date===selectedDate);
+  const tripFlightSection=$('#tripFlightSection');
+  if(todaysFlight && tripFlightSection){
+    tripFlightSection.hidden=false;
+    $('#tripFlightCard').innerHTML=flightMiniHTML(todaysFlight);
+  }else if(tripFlightSection){tripFlightSection.hidden=true;}
+
 
   $('#tripDateLabel').textContent=`${selectedDate} · ${d}`;
   $('#tripDayTitle').textContent=rows[0]?.['地區']?`${d} · ${rows[0]['地區']}`:d;
@@ -75,6 +175,7 @@ async function renderTripMode(){
   $('#tripNextItem').innerHTML=next?itemHTML(next):'<div class="empty">今天行程完成 🎉</div>';
   $('#tripQuickActions').innerHTML=next?`
     ${next['Google Maps']?`<a class="primary-action" href="${esc(next['Google Maps'])}" target="_blank">📍 導航下一站</a>`:''}
+    ${next['Google Maps']?mapCode(next['Map Code'],next['Map Code Status']):''}
     <button onclick="toggleTripDoneByKey('${esc(itemKey(next))}')">${done[itemKey(next)]?'↺ 標為未完成':'✓ 完成這一站'}</button>
     <button data-go="cards">💳 刷哪張卡</button>`:'';
   $$('#tripQuickActions [data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
@@ -92,7 +193,7 @@ async function renderTripMode(){
     </div>`;
   }else $('#tripHotel').innerHTML='<p class="note">今天沒有住宿資料</p>';
 
-  $('#tripParking').innerHTML=parking.length?parking.map(r=>`<div class="compact-row"><div><b>${esc(timeOf(r))} ${esc(r['名稱'])}</b><small>${esc(r['停車']||'')}</small></div><div class="actions">${mapBtn(r['Google Maps'])}${mapCode(r['Map Code'])}</div></div>`).join(''):'<p class="note">今天沒有另外設定停車卡。</p>';
+  $('#tripParking').innerHTML=parking.length?parking.map(r=>`<div class="compact-row"><div><b>${esc(timeOf(r))} ${esc(r['名稱'])}</b><small>${esc(r['停車']||'')}</small></div><div class="actions">${rowMapActions(r)}</div></div>`).join(''):'<p class="note">今天沒有另外設定停車卡。</p>';
 
   $('#tripPlanB').innerHTML=backups.length?backups.map(r=>`<div class="compact-row backup"><div><b>${esc(r['名稱'])}</b><small>${esc(r['Plan B']||r['備註']||'')}</small></div></div>`).join(''):'<p class="note">今天沒有額外備案。</p>';
 
@@ -102,7 +203,7 @@ async function renderTripMode(){
       <button class="trip-check" onclick="toggleTripDoneByKey('${esc(key)}')">${isDone?'✓':'○'}</button>
       <div class="trip-line-time">${esc(timeOf(r))}</div>
       <div class="grow"><b>${esc(r['名稱'])}</b><div class="meta">${r['類型']?`<span class="pill">${esc(r['類型'])}</span>`:''}${r['地區']?`<span class="pill">${esc(r['地區'])}</span>`:''}</div>${r['備註']?`<small>${esc(r['備註'])}</small>`:''}</div>
-      <div class="actions">${mapBtn(r['Google Maps'])}</div>
+      <div class="actions">${rowMapActions(r)}</div>
     </article>`
   }).join('');
 
@@ -125,7 +226,7 @@ $('#tripAddNote')?.addEventListener('click',()=>$('#addNoteBtn').click());
 renderTripMode();
 
 renderList($('#driveList'),data.filter(r=>['移動','SA・PA'].includes(r['類型'])));renderList($('#planbList'),data.filter(r=>r['類型']==='備案'));
-$('#parkingList').innerHTML=data.filter(r=>r['類型']==='停車').map(r=>`<article class="card"><div class="big">${esc(r.Day)} · ${esc(dateOf(r).slice(5).replace('-','/'))} ${esc(timeOf(r))}</div><h3>${esc(r['名稱'])}</h3>${r['停車']?`<p class="note">${esc(r['停車'])}</p>`:''}${r['Plan B']?`<p class="note"><b>Plan B：</b>${esc(r['Plan B'])}</p>`:''}<div class="actions">${mapBtn(r['Google Maps'])}${mapCode(r['Map Code'])}</div></article>`).join('');
+$('#parkingList').innerHTML=data.filter(r=>r['類型']==='停車').map(r=>`<article class="card"><div class="big">${esc(r.Day)} · ${esc(dateOf(r).slice(5).replace('-','/'))} ${esc(timeOf(r))}</div><h3>${esc(r['名稱'])}</h3>${r['停車']?`<p class="note">${esc(r['停車'])}</p>`:''}${r['Plan B']?`<p class="note"><b>Plan B：</b>${esc(r['Plan B'])}</p>`:''}<div class="actions">${rowMapActions(r)}</div></article>`).join('');
 function nextItem(){const now=new Date();let future=data.filter(r=>r.日期時間&&dt(r.日期時間)>=now&&r['類型']!=='備案').sort((a,b)=>dt(a.日期時間)-dt(b.日期時間));if(!future.length)future=data;$('#nextItem').innerHTML=itemHTML(future[0]);$('#homeTodayText').textContent=`${currentTripDay()} · ${dayDates[currentTripDay()].slice(5).replace('-','/')}`;const h=hotels.find(x=>x.dates.includes(dayDates[currentTripDay()].slice(5).replace('-','/')))||hotels[0];if(h)$('#homeHotelText').textContent=h.name;}
 nextItem();
 function renderHomeBookingAlert(){
