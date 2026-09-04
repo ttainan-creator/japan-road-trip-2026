@@ -4,7 +4,7 @@ const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2);
 const dt=s=>new Date(String(s).replace(' ','T')); const dateOf=r=>r.日期時間?.slice(0,10)||''; const timeOf=r=>r.日期時間?.slice(11,16)||'';
 const days=[...new Set(data.map(r=>r.Day))].sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1))); const dayDates={}; days.forEach(d=>{const r=data.find(x=>x.Day===d&&x.日期時間);dayDates[d]=r?dateOf(r):''});
-function go(name){$$('.view').forEach(v=>v.classList.remove('active')); const v=$('#'+name+'View'); if(v)v.classList.add('active'); $$('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===name)); window.scrollTo({top:0,behavior:'smooth'}); if(name==='expenses')renderExpenses(); if(name==='shopping')renderShopping(); if(name==='notes')renderNotes(); if(name==='hotels')renderHotels(); if(name==='wallet')refreshRateUI();}
+function go(name){$$('.view').forEach(v=>v.classList.remove('active')); const v=$('#'+name+'View'); if(v)v.classList.add('active'); $$('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===name)); window.scrollTo({top:0,behavior:'smooth'}); if(name==='expenses')renderExpenses(); if(name==='shopping')renderShopping(); if(name==='notes')renderNotes(); if(name==='hotels')renderHotels(); if(name==='wallet')refreshRateUI(); if(name==='cards'){renderCards();renderCardCompare();}}
 $$('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
 function mapBtn(url){return url?`<a href="${esc(url)}" target="_blank" rel="noopener">📍 導航</a>`:''} function mapCode(code){return code?`<button onclick="copyText('${esc(code)}')">🗺 ${esc(code)}</button>`:''}
 window.copyText=async t=>{try{await navigator.clipboard.writeText(t);toast('已複製 '+t)}catch{prompt('複製',t)}};
@@ -21,6 +21,24 @@ renderList($('#driveList'),data.filter(r=>['移動','SA・PA'].includes(r['類�
 $('#parkingList').innerHTML=data.filter(r=>r['類型']==='停車').map(r=>`<article class="card"><div class="big">${esc(r.Day)} · ${esc(dateOf(r).slice(5).replace('-','/'))} ${esc(timeOf(r))}</div><h3>${esc(r['名稱'])}</h3>${r['停車']?`<p class="note">${esc(r['停車'])}</p>`:''}${r['Plan B']?`<p class="note"><b>Plan B：</b>${esc(r['Plan B'])}</p>`:''}<div class="actions">${mapBtn(r['Google Maps'])}${mapCode(r['Map Code'])}</div></article>`).join('');
 function nextItem(){const now=new Date();let future=data.filter(r=>r.日期時間&&dt(r.日期時間)>=now&&r['類型']!=='備案').sort((a,b)=>dt(a.日期時間)-dt(b.日期時間));if(!future.length)future=data;$('#nextItem').innerHTML=itemHTML(future[0]);$('#homeTodayText').textContent=`${currentTripDay()} · ${dayDates[currentTripDay()].slice(5).replace('-','/')}`;const h=hotels.find(x=>x.dates.includes(dayDates[currentTripDay()].slice(5).replace('-','/')))||hotels[0];if(h)$('#homeHotelText').textContent=h.name;}
 nextItem();
+function renderHomeBookingAlert(){
+  const now=new Date();
+  const upcoming=hotels
+    .filter(h=>h.booking?.cancelDate)
+    .map(h=>({h,d:new Date(String(h.booking.cancelDate).length===10?h.booking.cancelDate+'T23:59:00':h.booking.cancelDate)}))
+    .filter(x=>x.d>=now)
+    .sort((a,b)=>a.d-b.d)[0];
+  const el=$('#homeBookingAlert');
+  if(!el)return;
+  if(!upcoming){el.innerHTML='<div class="section-head"><h3>🏨 訂房提醒</h3></div><p class="note">目前沒有即將到期的免費取消期限。</p>';return}
+  const daysLeft=Math.ceil((upcoming.d-now)/86400000);
+  const b=upcoming.h.booking;
+  el.innerHTML=`<div class="section-head"><h3>⏳ 下一個取消期限</h3><button class="textlink" data-go="hotels">查看住宿 →</button></div>
+  <div class="booking-alert-row"><div><b>${esc(upcoming.h.name)}</b><small>${esc(b.platform||'')} · ${esc(b.amount||'')}</small></div><strong>${daysLeft} 天</strong></div>
+  <p class="note">免費取消至 ${esc(String(b.cancelDate).replace('T',' '))}</p>`;
+  el.querySelector('[data-go]')?.addEventListener('click',()=>go('hotels'));
+}
+renderHomeBookingAlert();
 // Hotels local private + cover
 async function renderHotels(){
   const priv=Object.fromEntries((await TripDB.all('hotelPrivate')).map(x=>[x.id,x]));
@@ -73,21 +91,246 @@ $('#saveRate').addEventListener('click',()=>{const v=Number($('#rateInput').valu
 $('#fetchRate').addEventListener('click',async()=>{try{$('#fetchRate').textContent='更新中…';const r=await fetch('https://open.er-api.com/v6/latest/JPY');const j=await r.json();if(!j?.rates?.TWD)throw 0;rate=Number(j.rates.TWD);localStorage.setItem('jpy-twd-rate',rate);localStorage.setItem('jpy-twd-stamp','線上 '+new Date().toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}));refreshRateUI();toast('匯率已更新')}catch{toast('無法線上更新，仍可手動輸入')}finally{$('#fetchRate').textContent='🌐 線上更新'}});
 function calcFromJPY(){const v=Number($('#jpyInput').value||0);$('#twdInput').value=v?Math.round(v*rate):''}function calcFromTWD(){const v=Number($('#twdInput').value||0);$('#jpyInput').value=v?Math.round(v/rate):''}$('#jpyInput').addEventListener('input',calcFromJPY);$('#twdInput').addEventListener('input',calcFromTWD);refreshRateUI();
 // Cards
-function renderCards(filter='all'){const list=[];if(filter!=='network')ref.cards.filter(c=>filter==='5'?c.score>=5:true).forEach(c=>list.push(`<article class="card"><div class="big">${'★'.repeat(c.score)} · ${esc(c.issuer)}</div><h3>${esc(c.name)}</h3><p><b>${esc(c.best)}</b></p><p class="note">${esc(c.summary)}</p>${c.conditions.map(x=>`<p class="note">• ${esc(x)}</p>`).join('')}<div class="actions"><a href="${esc(c.source)}" target="_blank">官方來源 ↗</a></div></article>`));if(filter==='all'||filter==='network')ref.networkPromos.forEach(p=>list.push(`<article class="card"><div class="big">${esc(p.network)} · ${esc(p.valid)}</div><h3>${esc(p.title)}</h3><p class="note">${esc(p.detail)}</p><div class="actions"><a href="${esc(p.source)}" target="_blank">活動頁 ↗</a></div></article>`));$('#cardsList').innerHTML=list.join('')}
-renderCards();$$('#cardFilters button').forEach(b=>b.addEventListener('click',()=>{$$('#cardFilters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderCards(b.dataset.filter)}));
+const defaultCardProfile={
+  mEbill:false,
+  fubonRegistered:false,
+  jihoMobileRegistered:false,
+  jihoBill30k:false,
+  kumamonPaypay:false,
+  ubearOnlineFull:false,
+  flygoEligible:false,
+  kgiAutopay:false,
+  visaSelectRegistered:false,
+  jcbCouponReady:false,
+  networks:{}
+};
+let cardProfile={...defaultCardProfile,networks:{}};
+
+async function loadCardProfile(){
+  const row=await TripDB.get('settings','cardProfile');
+  cardProfile={...defaultCardProfile,...(row?.value||{}),networks:{...(row?.value?.networks||{})}};
+}
+async function saveCardProfile(){await TripDB.put('settings',{id:'cardProfile',value:cardProfile});}
+
+function renderCards(filter='all'){
+  const list=[];
+  if(filter!=='network'){
+    ref.cards.filter(c=>filter==='5'?c.score>=5:true).forEach(c=>{
+      const net=cardProfile.networks?.[c.id]||'未設定';
+      list.push(`<article class="card">
+        <div class="big">${'★'.repeat(c.score)} · ${esc(c.issuer)} · ${esc(net)}</div>
+        <h3>${esc(c.name)}</h3>
+        <p><b>${esc(c.best)}</b></p>
+        <p class="note">${esc(c.summary)}</p>
+        ${c.conditions.map(x=>`<p class="note">• ${esc(x)}</p>`).join('')}
+        ${c.calc?.compareNote?`<p class="calc-note">比較器：${esc(c.calc.compareNote)}</p>`:''}
+        <div class="actions"><a href="${esc(c.source)}" target="_blank">官方來源 ↗</a></div>
+      </article>`);
+    });
+  }
+  if(filter==='all'||filter==='network'){
+    ref.networkPromos.forEach(p=>list.push(`<article class="card network-card">
+      <div class="big">${esc(p.network)} · ${esc(p.valid)}</div>
+      <h3>${esc(p.title)}</h3><p class="note">${esc(p.detail)}</p>
+      <div class="actions"><a href="${esc(p.source)}" target="_blank">活動頁 ↗</a></div>
+    </article>`));
+  }
+  $('#cardsList').innerHTML=list.join('');
+}
+function cardRateFor(c,scenario){
+  let r=c.calc?.rates?.[scenario];
+  if(r==null)return null;
+  const req=c.calc?.requires?.[scenario];
+  if(req && !cardProfile[req])return null;
+  if(c.id==='ubot-jiho' && scenario==='mobile'){
+    r=2.5+(cardProfile.jihoMobileRegistered?1.5:0)+(cardProfile.jihoBill30k?1:0);
+  }
+  if(c.id==='kgi-eslite' && cardProfile.kgiAutopay)r=2.3;
+  return r;
+}
+function networkExtra(c,scenario,amount){
+  if(scenario!=='drugstore')return {score:0,label:''};
+  const net=cardProfile.networks?.[c.id];
+  if(net==='Visa' && cardProfile.visaSelectRegistered && amount>=20000){
+    const pct=2000/amount*100;
+    return {score:pct,label:`Visa Select：另回饋 ¥2,000（約 ${pct.toFixed(1)}%，需符合指定店/未稅門檻/上傳憑證）`};
+  }
+  if(net==='JCB' && cardProfile.jcbCouponReady && amount>=10000){
+    const pct=amount>=50000?7:amount>=30000?5:3;
+    return {score:pct,label:`JCB 指定藥妝：店頭約 ${pct}% OFF（需出示優惠券；指定品牌）`};
+  }
+  if(net==='Mastercard')return {score:0,label:'Mastercard Travel Rewards：商戶與回饋滾動更新，請點活動頁確認當期日本名單。'};
+  return {score:0,label:''};
+}
+function renderCardCompare(){
+  if(!$('#cardCompareResult'))return;
+  const scenario=$('#cardScenario')?.value||'physical';
+  const amount=Math.max(0,Number($('#cardAmount')?.value||0));
+  const fee=Number($('#foreignFee')?.value||0);
+  const rows=[];
+  ref.cards.forEach(c=>{
+    const ratePct=cardRateFor(c,scenario);
+    if(ratePct==null)return;
+    const extra=networkExtra(c,scenario,amount);
+    const rewardTwd=amount*rate*(ratePct/100);
+    const feeTwd=amount*rate*(fee/100);
+    rows.push({c,ratePct,extra,rewardTwd,feeTwd,score:ratePct+extra.score});
+  });
+  rows.sort((a,b)=>b.score-a.score);
+  const top=rows.slice(0,5);
+  $('#cardCompareResult').innerHTML=top.length?top.map((x,i)=>`
+    <article class="compare-row ${i===0?'winner':''}">
+      <div class="rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <div class="grow">
+        <h4>${esc(x.c.name)}</h4>
+        <p><b>卡片回饋約 ${x.ratePct.toFixed(1)}%</b> · 約 NT$${Math.round(x.rewardTwd).toLocaleString()}</p>
+        ${x.extra.label?`<p class="network-extra">${esc(x.extra.label)}</p>`:''}
+        <small>若以海外交易費 ${fee.toFixed(1)}% 粗估，費用約 NT$${Math.round(x.feeTwd).toLocaleString()}；此為比較用估算。</small>
+      </div>
+    </article>`).join(''):'<div class="empty">依目前資格設定，這個情境沒有可自動比較的卡片。請先按「資格 / 卡組織設定」。</div>';
+}
+async function editCardProfile(){
+  await loadCardProfile();
+  const fields=[
+    ['mEbill','聯邦M卡：已使用電子化帳單','select',cardProfile.mEbill?'是':'否',['否','是']],
+    ['fubonRegistered','富邦Costco：本月海外活動已登錄','select',cardProfile.fubonRegistered?'是':'否',['否','是']],
+    ['jihoMobileRegistered','吉鶴：日本行動支付1.5%已登錄','select',cardProfile.jihoMobileRegistered?'是':'否',['否','是']],
+    ['jihoBill30k','吉鶴：前月聯邦帳單滿3萬元','select',cardProfile.jihoBill30k?'是':'否',['否','是']],
+    ['kumamonPaypay','熊本熊：PayPay方案已設定','select',cardProfile.kumamonPaypay?'是':'否',['否','是']],
+    ['ubearOnlineFull','U Bear：網路最高3%資格已符合','select',cardProfile.ubearOnlineFull?'是':'否',['否','是']],
+    ['flygoEligible','FlyGo/Richart：玩旅刷＋指定任務已完成','select',cardProfile.flygoEligible?'是':'否',['否','是']],
+    ['kgiAutopay','凱基誠品：凱基帳戶自扣已設定','select',cardProfile.kgiAutopay?'是':'否',['否','是']],
+    ['visaSelectRegistered','Visa Select：日本藥妝/電器活動已報名','select',cardProfile.visaSelectRegistered?'是':'否',['否','是']],
+    ['jcbCouponReady','JCB：日本藥妝優惠券會使用','select',cardProfile.jcbCouponReady?'是':'否',['否','是']]
+  ];
+  ref.cards.forEach(c=>fields.push([`net__${c.id}`,`${c.name} 卡組織`,'select',cardProfile.networks?.[c.id]||'未設定',['未設定','Visa','Mastercard','JCB']]));
+  openDialog('信用卡資格 / 卡組織設定',fields,async v=>{
+    const boolKeys=['mEbill','fubonRegistered','jihoMobileRegistered','jihoBill30k','kumamonPaypay','ubearOnlineFull','flygoEligible','kgiAutopay','visaSelectRegistered','jcbCouponReady'];
+    boolKeys.forEach(k=>cardProfile[k]=v[k]==='是');
+    cardProfile.networks={...(cardProfile.networks||{})};
+    ref.cards.forEach(c=>cardProfile.networks[c.id]=v[`net__${c.id}`]||'未設定');
+    await saveCardProfile();renderCards();renderCardCompare();toast('信用卡設定已儲存於這台裝置');
+  });
+}
+$('#cardProfileBtn')?.addEventListener('click',editCardProfile);
+$('#compareCardsBtn')?.addEventListener('click',renderCardCompare);
+$('#cardScenario')?.addEventListener('change',renderCardCompare);
+$('#cardAmount')?.addEventListener('input',renderCardCompare);
+$('#foreignFee')?.addEventListener('change',renderCardCompare);
+$$('#cardFilters button').forEach(b=>b.addEventListener('click',()=>{$$('#cardFilters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderCards(b.dataset.filter)}));
+loadCardProfile().then(()=>{renderCards();renderCardCompare()});
 // Shopping
 let shopCat='all';$('#addShoppingBtn').addEventListener('click',()=>openDialog('新增必買',[['name','商品','text',''],['category','分類','select','食品',['食品','電器','藥妝','雜貨']],['place','想在哪裡買','text',''],['budget','預算（日圓）','number',''],['note','備註','textarea','']],async v=>{await TripDB.put('shopping',{id:uid(),...v,bought:false,createdAt:new Date().toISOString()});renderShopping()}));
 async function renderShopping(){const rows=(await TripDB.all('shopping')).filter(x=>shopCat==='all'||x.category===shopCat);$('#shoppingList').innerHTML=rows.length?rows.map(x=>`<article class="card shop-row"><input type="checkbox" ${x.bought?'checked':''} onchange="toggleShop('${x.id}',this.checked)"><div class="grow"><h3>${esc(x.name)}</h3><div class="meta"><span class="pill">${esc(x.category)}</span>${x.place?`<span class="pill">${esc(x.place)}</span>`:''}</div>${x.budget?`<p class="note">預算 ¥${esc(x.budget)}</p>`:''}${x.note?`<p class="note">${esc(x.note)}</p>`:''}</div><button onclick="deleteShop('${x.id}')">×</button></article>`).join(''):'<div class="empty">還沒有必買品。想到什麼就按右上角 ＋。</div>'}
 window.toggleShop=async(id,v)=>{const x=await TripDB.get('shopping',id);x.bought=v;await TripDB.put('shopping',x);renderShopping()};window.deleteShop=async id=>{if(confirm('刪除這項？')){await TripDB.del('shopping',id);renderShopping()}};$$('#shoppingFilters button').forEach(b=>b.addEventListener('click',()=>{$$('#shoppingFilters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');shopCat=b.dataset.cat;renderShopping()}));
 // Expenses
-$('#addExpenseBtn').addEventListener('click',()=>openDialog('新增支出',[['date','日期','date',new Date().toISOString().slice(0,10)],['merchant','店家／項目','text',''],['category','分類','select','餐飲',['餐飲','住宿','購物','交通','景點','其他']],['jpy','日幣金額','number',''],['twd','台幣金額（可空白）','number',''],['card','付款方式／卡片','text',''],['note','備註','textarea','']],async v=>{if(v.jpy&&!v.twd)v.twd=Math.round(Number(v.jpy)*rate);await TripDB.put('expenses',{id:uid(),...v,createdAt:new Date().toISOString()});renderExpenses()}));
-async function renderExpenses(){const rows=(await TripDB.all('expenses')).sort((a,b)=>String(b.date).localeCompare(String(a.date)));const j=rows.reduce((s,x)=>s+Number(x.jpy||0),0),t=rows.reduce((s,x)=>s+Number(x.twd||0),0);$('#expenseSummary').innerHTML=`<div class="summary"><small>本趟日幣</small><b>¥${j.toLocaleString()}</b></div><div class="summary"><small>約台幣</small><b>NT$${Math.round(t).toLocaleString()}</b></div><div class="summary"><small>筆數</small><b>${rows.length}</b></div><div class="summary"><small>匯率</small><b>${rate.toFixed(4)}</b></div>`;$('#homeSpendText').textContent=`本趟 ¥${j.toLocaleString()}`;$('#expenseList').innerHTML=rows.length?rows.map(x=>`<article class="card expense-row"><div class="grow"><div class="big">${esc(x.date||'')} · ${esc(x.category||'')}</div><h3>${esc(x.merchant||'未命名')}</h3>${x.card?`<p class="note">💳 ${esc(x.card)}</p>`:''}${x.note?`<p class="note">${esc(x.note)}</p>`:''}</div><div><div class="money">¥${Number(x.jpy||0).toLocaleString()}</div><p class="note">NT$${Number(x.twd||0).toLocaleString()}</p><button onclick="deleteExpense('${x.id}')">×</button></div></article>`).join(''):'<div class="empty">還沒有支出。旅行時按右上角 ＋ 記一筆。</div>'}
-window.deleteExpense=async id=>{if(confirm('刪除這筆支出？')){await TripDB.del('expenses',id);renderExpenses()}};$('#exportExpenses').addEventListener('click',async()=>{const rows=await TripDB.all('expenses');const cols=['date','merchant','category','jpy','twd','card','note'];const csv=[cols.join(','),...rows.map(r=>cols.map(c=>'"'+String(r[c]??'').replace(/"/g,'""')+'"').join(','))].join('\n');downloadBlob(new Blob(['\ufeff'+csv],{type:'text/csv'}),'JapanTrip-expenses.csv')});
+const expenseCardOptions=['現金',...ref.cards.map(c=>c.name),'其他'];
+$('#addExpenseBtn').addEventListener('click',()=>openDialog('新增支出',[
+  ['date','日期','date',new Date().toISOString().slice(0,10)],
+  ['merchant','店家／項目','text',''],
+  ['category','分類','select','餐飲',['餐飲','住宿','購物','交通','景點','其他']],
+  ['jpy','日幣金額','number',''],
+  ['twd','台幣金額（可空白）','number',''],
+  ['card','付款方式／卡片','select','現金',expenseCardOptions],
+  ['receipt','收據照片（選填）','file',''],
+  ['note','備註','textarea','']
+],async v=>{
+  if(v.jpy&&!v.twd)v.twd=Math.round(Number(v.jpy)*rate);
+  let receipt='';if(v.receiptFile)receipt=await compressImage(v.receiptFile,1500,.72);delete v.receiptFile;
+  await TripDB.put('expenses',{id:uid(),...v,receipt,createdAt:new Date().toISOString()});renderExpenses()
+}));
+function expenseCategoryHTML(rows,totalJpy){
+  const cats=['餐飲','住宿','購物','交通','景點','其他'];
+  const sums=Object.fromEntries(cats.map(c=>[c,rows.filter(x=>x.category===c).reduce((s,x)=>s+Number(x.jpy||0),0)]));
+  const active=cats.filter(c=>sums[c]>0).sort((a,b)=>sums[b]-sums[a]);
+  if(!active.length)return '<div class="section-head"><h3>分類統計</h3></div><p class="note">開始記帳後，這裡會自動整理餐飲、住宿、購物等比例。</p>';
+  return `<div class="section-head"><h3>分類統計</h3></div>${active.map(c=>{
+    const pct=totalJpy?sums[c]/totalJpy*100:0;
+    return `<div class="break-row"><div><b>${esc(c)}</b><small>¥${sums[c].toLocaleString()} · ${pct.toFixed(0)}%</small></div><div class="bar"><i style="width:${Math.max(4,pct)}%"></i></div></div>`;
+  }).join('')}`;
+}
+async function renderExpenses(){
+  const rows=(await TripDB.all('expenses')).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const j=rows.reduce((s,x)=>s+Number(x.jpy||0),0),t=rows.reduce((s,x)=>s+Number(x.twd||0),0);
+  $('#expenseSummary').innerHTML=`<div class="summary"><small>本趟日幣</small><b>¥${j.toLocaleString()}</b></div><div class="summary"><small>約台幣</small><b>NT$${Math.round(t).toLocaleString()}</b></div><div class="summary"><small>筆數</small><b>${rows.length}</b></div><div class="summary"><small>匯率</small><b>${rate.toFixed(4)}</b></div>`;
+  $('#homeSpendText').textContent=`本趟 ¥${j.toLocaleString()}`;
+  $('#expenseBreakdown').innerHTML=expenseCategoryHTML(rows,j);
+  $('#expenseList').innerHTML=rows.length?rows.map(x=>`<article class="card expense-row">
+    ${x.receipt?`<img class="receipt-thumb" src="${x.receipt}" alt="收據">`:''}
+    <div class="grow"><div class="big">${esc(x.date||'')} · ${esc(x.category||'')}</div><h3>${esc(x.merchant||'未命名')}</h3>${x.card?`<p class="note">💳 ${esc(x.card)}</p>`:''}${x.note?`<p class="note">${esc(x.note)}</p>`:''}</div>
+    <div><div class="money">¥${Number(x.jpy||0).toLocaleString()}</div><p class="note">NT$${Number(x.twd||0).toLocaleString()}</p><button onclick="deleteExpense('${x.id}')">×</button></div>
+  </article>`).join(''):'<div class="empty">還沒有支出。可按 ＋ 手動記帳，或用「掃描收據 Beta」。</div>'
+}
+window.deleteExpense=async id=>{if(confirm('刪除這筆支出？')){await TripDB.del('expenses',id);renderExpenses()}};
+$('#exportExpenses').addEventListener('click',async()=>{
+  const rows=await TripDB.all('expenses');const cols=['date','merchant','category','jpy','twd','card','note'];
+  const csv=[cols.join(','),...rows.map(r=>cols.map(c=>'"'+String(r[c]??'').replace(/"/g,'""')+'"').join(','))].join('\n');
+  downloadBlob(new Blob(['\ufeff'+csv],{type:'text/csv'}),'JapanTrip-expenses.csv')
+});
+async function loadTesseract(){
+  if(window.Tesseract)return window.Tesseract;
+  $('#ocrStatus').textContent='正在下載 OCR 模組…';
+  await new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.onload=resolve;s.onerror=reject;document.head.appendChild(s);
+  });
+  return window.Tesseract;
+}
+function parseReceiptText(text){
+  const lines=String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const bad=/お釣|おつり|釣銭|預り|預かり|CHANGE/i;
+  const good=/合計|お買上|お支払|TOTAL|税込|現計|総額/i;
+  let candidates=[];
+  for(const line of lines){
+    if(bad.test(line))continue;
+    const nums=[...line.matchAll(/(?:¥|￥)?\s*([0-9]{1,3}(?:[,，][0-9]{3})+|[0-9]{3,7})/g)]
+      .map(m=>Number(m[1].replace(/[,，]/g,''))).filter(n=>n>=50&&n<=5000000);
+    nums.forEach(n=>candidates.push({n,score:(good.test(line)?10:0)+(line.includes('¥')||line.includes('￥')?2:0),line}));
+  }
+  candidates.sort((a,b)=>b.score-a.score||b.n-a.n);
+  const amount=candidates[0]?.n||'';
+  let date='';
+  const dm=text.match(/(20\d{2})[\/\-.年]\s*(\d{1,2})[\/\-.月]\s*(\d{1,2})/);
+  if(dm)date=`${dm[1]}-${String(dm[2]).padStart(2,'0')}-${String(dm[3]).padStart(2,'0')}`;
+  const merchant=lines.find(l=>/[A-Za-z\u3040-\u30ff\u4e00-\u9fff]/.test(l)&&!good.test(l)&&l.length>=2&&l.length<=40)||'';
+  return {amount,date,merchant};
+}
+$('#scanReceiptBtn')?.addEventListener('click',()=>$('#receiptInput').click());
+$('#receiptInput')?.addEventListener('change',async e=>{
+  const file=e.target.files?.[0]; if(!file)return;
+  try{
+    const receipt=await compressImage(file,1700,.78);
+    const T=await loadTesseract();
+    $('#ocrStatus').textContent='日文收據辨識中… 可能需要 20–60 秒';
+    const result=await T.recognize(receipt,'jpn+eng',{logger:m=>{
+      if(m.status==='recognizing text' && m.progress!=null)$('#ocrStatus').textContent=`辨識中 ${Math.round(m.progress*100)}%`;
+    }});
+    const parsed=parseReceiptText(result.data?.text||'');
+    $('#ocrStatus').textContent='辨識完成：請核對金額與店名';
+    openDialog('OCR 結果確認',[
+      ['date','日期','date',parsed.date||new Date().toISOString().slice(0,10)],
+      ['merchant','店家／項目','text',parsed.merchant||''],
+      ['category','分類','select','購物',['餐飲','住宿','購物','交通','景點','其他']],
+      ['jpy','辨識金額（日圓）','number',parsed.amount||''],
+      ['card','付款方式／卡片','select','現金',expenseCardOptions],
+      ['note','備註','textarea','OCR自動辨識，已人工確認']
+    ],async v=>{
+      v.twd=v.jpy?Math.round(Number(v.jpy)*rate):'';
+      await TripDB.put('expenses',{id:uid(),...v,receipt,ocrText:result.data?.text||'',createdAt:new Date().toISOString()});
+      renderExpenses();toast('收據已加入記帳')
+    });
+  }catch(err){
+    console.error(err);
+    $('#ocrStatus').textContent='OCR 無法使用；可改用 ＋ 手動記帳並附上收據照片。';
+    toast('收據辨識失敗，請改手動記帳');
+  }finally{e.target.value=''}
+});
 // Notes
 $('#addNoteBtn').addEventListener('click',()=>openDialog('新增旅行日記',[['date','日期','date',new Date().toISOString().slice(0,10)],['place','地點','text',''],['text','今天想記住什麼？','textarea',''],['rating','評分','select','5',['5','4','3','2','1']],['photo','照片（選填）','file','']],async v=>{let photo='';if(v.photoFile)photo=await compressImage(v.photoFile,1400,.72);delete v.photoFile;await TripDB.put('notes',{id:uid(),...v,photo,createdAt:new Date().toISOString()});renderNotes()}));
 async function renderNotes(){const rows=(await TripDB.all('notes')).sort((a,b)=>String(b.date).localeCompare(String(a.date)));$('#notesList').innerHTML=rows.length?rows.map(x=>`<article class="journal">${x.photo?`<img src="${x.photo}" alt="">`:''}<div class="journal-body"><div class="big">${esc(x.date||'')} · ${esc(x.place||'')}</div><h3>${'★'.repeat(Number(x.rating||0))}</h3><p>${esc(x.text||'')}</p><div class="actions"><button onclick="deleteNote('${x.id}')">刪除</button></div></div></article>`).join(''):'<div class="empty">旅行日記還是空白。出發後，每天留一句話也很值得。</div>'}
 window.deleteNote=async id=>{if(confirm('刪除這篇日記？')){await TripDB.del('notes',id);renderNotes()}};
-$('#makeMemoir').addEventListener('click',async()=>{const notes=(await TripDB.all('notes')).sort((a,b)=>String(a.date).localeCompare(String(b.date))),expenses=await TripDB.all('expenses');const total=expenses.reduce((s,x)=>s+Number(x.jpy||0),0);const w=window.open('','_blank');w.document.write(`<html><head><title>Japan Road Trip 2026 回憶錄</title><style>body{font-family:serif;max-width:760px;margin:50px auto;color:#29231d;line-height:1.8;padding:0 20px}h1{font-size:36px}article{page-break-inside:avoid;margin:36px 0}img{max-width:100%;border-radius:14px}.meta{color:#8a6a55}button{padding:10px 14px}</style></head><body><h1>🇯🇵 Japan Road Trip 2026</h1><p>2026/11/21–11/30 · 10 Days 9 Nights</p><p><b>旅行記帳累計：</b>¥${total.toLocaleString()}</p><button onclick="print()">列印／另存 PDF</button>${notes.map(n=>`<article><p class="meta">${esc(n.date)} · ${esc(n.place)} · ${'★'.repeat(Number(n.rating||0))}</p>${n.photo?`<img src="${n.photo}">`:''}<p>${esc(n.text).replace(/\n/g,'<br>')}</p></article>`).join('')}</body></html>`);w.document.close()});
+$('#makeMemoir').addEventListener('click',async()=>{const notes=(await TripDB.all('notes')).sort((a,b)=>String(a.date).localeCompare(String(b.date))),expenses=await TripDB.all('expenses');const total=expenses.reduce((s,x)=>s+Number(x.jpy||0),0);const cats=['餐飲','住宿','購物','交通','景點','其他'];const breakdown=cats.map(c=>[c,expenses.filter(x=>x.category===c).reduce((s,x)=>s+Number(x.jpy||0),0)]).filter(x=>x[1]>0);const w=window.open('','_blank');w.document.write(`<html><head><title>Japan Road Trip 2026 回憶錄</title><style>body{font-family:serif;max-width:760px;margin:50px auto;color:#29231d;line-height:1.8;padding:0 20px}h1{font-size:36px}article{page-break-inside:avoid;margin:36px 0}img{max-width:100%;border-radius:14px}.meta{color:#8a6a55}button{padding:10px 14px}</style></head><body><h1>🇯🇵 Japan Road Trip 2026</h1><p>2026/11/21–11/30 · 10 Days 9 Nights</p><p><b>旅行記帳累計：</b>¥${total.toLocaleString()}</p><p>${breakdown.map(x=>`${x[0]} ¥${x[1].toLocaleString()}`).join(' · ')}</p><button onclick="print()">列印／另存 PDF</button>${notes.map(n=>`<article><p class="meta">${esc(n.date)} · ${esc(n.place)} · ${'★'.repeat(Number(n.rating||0))}</p>${n.photo?`<img src="${n.photo}">`:''}<p>${esc(n.text).replace(/\n/g,'<br>')}</p></article>`).join('')}</body></html>`);w.document.close()});
 // Guides
 $('#guideList').innerHTML=ref.guides.map(g=>`<article class="card"><div class="big">${esc(g.day)} · 約 ${g.minutes} 分鐘</div><h3>${esc(g.title)}</h3><p class="note">${esc(g.intro.slice(0,75))}…</p><div class="actions"><button onclick="openGuide('${g.id}')">開始閱讀 →</button></div></article>`).join('');window.openGuide=id=>{const g=ref.guides.find(x=>x.id===id);$('#guideTitle').textContent=g.title;$('#guideBody').innerHTML=`<p class="lead">${esc(g.intro)}</p><h3>現場請特別看</h3><ul>${g.points.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><blockquote><b>帶著這個問題去看：</b><br>${esc(g.question)}</blockquote>`;go('guideDetail')};
 // Checklist

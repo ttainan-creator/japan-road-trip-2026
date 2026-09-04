@@ -14,7 +14,18 @@ window.REFERENCE_DATA = {
       ],
       "valid": "2026-12-31",
       "source": "https://activity.ubot.com.tw/2026Mcard/index.htm",
-      "score": 4
+      "score": 4,
+      "calc": {
+        "rates": {
+          "physical": 3.0,
+          "mobile": 3.0
+        },
+        "requires": {
+          "physical": "mEbill",
+          "mobile": "mEbill"
+        },
+        "compareNote": "海外實體3%需電子化帳單；指定國家額外加碼因有門檻，未自動併入。"
+      }
     },
     {
       "id": "ubot-jiho",
@@ -30,7 +41,15 @@ window.REFERENCE_DATA = {
       ],
       "valid": "2026-12-31",
       "source": "https://activity.ubot.com.tw/2026JiHoCard/japan.htm",
-      "score": 5
+      "score": 5,
+      "calc": {
+        "rates": {
+          "physical": 2.5,
+          "mobile": 2.5,
+          "drugstore": 2.5
+        },
+        "compareNote": "日本一般2.5%無上限；行動支付依你的登錄/前月帳單資格再加碼。"
+      }
     },
     {
       "id": "fubon-costco",
@@ -45,7 +64,20 @@ window.REFERENCE_DATA = {
       ],
       "valid": "2026-12-31",
       "source": "https://www.fubon.com/banking/event/credit_card/costcoweb/travel/evt5-03.html",
-      "score": 5
+      "score": 5,
+      "calc": {
+        "rates": {
+          "physical": 5.0,
+          "booking": 3.0,
+          "drugstore": 5.0
+        },
+        "requires": {
+          "physical": "fubonRegistered",
+          "booking": "fubonRegistered",
+          "drugstore": "fubonRegistered"
+        },
+        "compareNote": "需當月完成活動登錄；第三方支付不適用加碼。"
+      }
     },
     {
       "id": "dbs-eco",
@@ -60,7 +92,15 @@ window.REFERENCE_DATA = {
       ],
       "valid": "2026-12-31",
       "source": "https://www.dbs.com.tw/personal-zh/cards/dbs_eco/index.html",
-      "score": 5
+      "score": 5,
+      "calc": {
+        "rates": {
+          "physical": 5.0,
+          "mobile": 5.0,
+          "drugstore": 5.0
+        },
+        "compareNote": "日本當地實體最高5%；加碼每期有上限。"
+      }
     },
     {
       "id": "dbs-eco-ez",
@@ -74,7 +114,14 @@ window.REFERENCE_DATA = {
       ],
       "valid": "2026-12-31",
       "source": "https://www.dbs.com.tw/personal-zh/cards/dbs-credit-cards/eco-ez",
-      "score": 5
+      "score": 5,
+      "calc": {
+        "rates": {
+          "physical": 5.0,
+          "drugstore": 5.0
+        },
+        "compareNote": "日本指定地區最高5%；加碼每期有上限。"
+      }
     },
     {
       "id": "esun-kumamon",
@@ -90,7 +137,18 @@ window.REFERENCE_DATA = {
       ],
       "valid": "2026-12-31",
       "source": "https://www.esunbank.com/zh-tw/personal/credit-card/intro/bank-card/kumamon_card",
-      "score": 5
+      "score": 5,
+      "calc": {
+        "rates": {
+          "physical": 2.5,
+          "drugstore": 2.5,
+          "paypay": 5.0
+        },
+        "requires": {
+          "paypay": "kumamonPaypay"
+        },
+        "compareNote": "日本一般2.5%；PayPay最高5%需依玉山Wallet方案。指定日本商店8.5%未自動套用，避免誤判店家。"
+      }
     },
     {
       "id": "esun-ubear",
@@ -105,7 +163,17 @@ window.REFERENCE_DATA = {
       ],
       "valid": "2027-02-28",
       "source": "https://event.esunbank.com.tw/credit/ubear/index.html",
-      "score": 2
+      "score": 2,
+      "calc": {
+        "rates": {
+          "physical": 1.0,
+          "booking": 3.0
+        },
+        "requires": {
+          "booking": "ubearOnlineFull"
+        },
+        "compareNote": "日本現場非主力；網路最高3%需符合帳單e化/自扣等條件。"
+      }
     },
     {
       "id": "taishin-flygo",
@@ -120,7 +188,22 @@ window.REFERENCE_DATA = {
       ],
       "valid": "2027-03-31",
       "source": "https://www.taishinbank.com.tw/TSB/personal/credit/intro/overview/future/",
-      "score": 4
+      "score": 4,
+      "calc": {
+        "rates": {
+          "physical": 3.3,
+          "mobile": 3.3,
+          "booking": 3.3,
+          "drugstore": 3.3
+        },
+        "requires": {
+          "physical": "flygoEligible",
+          "mobile": "flygoEligible",
+          "booking": "flygoEligible",
+          "drugstore": "flygoEligible"
+        },
+        "compareNote": "需先切換玩旅刷並完成指定任務，才以最高3.3%估算。"
+      }
     },
     {
       "id": "kgi-eslite",
@@ -135,7 +218,16 @@ window.REFERENCE_DATA = {
       ],
       "valid": "2026-12-31",
       "source": "https://www.kgibank.com.tw/webpages/eslite-credit-card/index.html?entry=OS9000969",
-      "score": 2
+      "score": 2,
+      "calc": {
+        "rates": {
+          "physical": 0.3,
+          "mobile": 0.3,
+          "booking": 0.3,
+          "drugstore": 0.3
+        },
+        "compareNote": "一般0.3%；若設定凱基帳戶自扣，計算器會改以最高2.3%估算。"
+      }
     }
   ],
   "networkPromos": [
@@ -227,5 +319,6 @@ window.REFERENCE_DATA = {
       ],
       "question": "宗教、交通、歌舞伎與商業，如何一起把一座寺院變成江戶近郊的超人氣目的地？"
     }
-  ]
+  ],
+  "compareUpdated": "2026-09-04"
 };

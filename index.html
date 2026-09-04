@@ -16,6 +16,7 @@
     <button class="dash" data-go="wallet"><span>💴</span><div><b>YEN</b><small id="homeRateText">更新匯率</small></div></button>
     <button class="dash" data-go="expenses"><span>🧾</span><div><b>SPEND</b><small id="homeSpendText">本趟 ¥0</small></div></button>
   </div>
+  <section id="homeBookingAlert" class="paper booking-alert"></section>
   <section class="paper"><div class="section-head"><h3>下一個行程</h3><button class="textlink" data-go="today">完整時間軸 →</button></div><div id="nextItem"></div></section>
   <section class="paper"><div class="section-head"><h3>旅行工具</h3></div><div class="tool-grid">
     <button data-go="cards">💳<small>刷哪張卡</small></button><button data-go="shopping">🛍<small>必買清單</small></button><button data-go="notes">📝<small>旅行日記</small></button><button data-go="guides">📚<small>景點導讀</small></button><button data-go="parking">🅿️<small>停車</small></button><button data-go="more">•••<small>更多</small></button>
@@ -26,7 +27,7 @@
 <section id="daysView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>ALL DAYS</small><h2>每日行程</h2></div></div><div id="daysTabs" class="day-tabs"></div><div id="daysList" class="timeline"></div></section>
 <section id="driveView" class="view"><div class="page-title"><button class="back" data-go="more">‹</button><div><small>ROAD</small><h2>自駕・SA/PA</h2></div></div><div id="driveList" class="timeline"></div></section>
 <section id="parkingView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>PARKING</small><h2>停車・Plan B</h2></div></div><div id="parkingList" class="card-list"></div></section>
-<section id="hotelsView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>STAY</small><h2>住宿</h2></div></div><div class="privacy-banner">🔐 付款、訂單碼與退訂資料只存在這台裝置，不會寫進公開 GitHub。</div><div id="hotelList" class="hotel-grid"></div></section>
+<section id="hotelsView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>STAY</small><h2>住宿</h2></div></div><div class="privacy-banner">🔐 GitHub 只放住宿平台、金額、付款狀態與取消期限；訂房號碼、驗證碼、實際使用卡片與私人備註仍只存在這台裝置。</div><div id="hotelList" class="hotel-grid"></div></section>
 <section id="planbView" class="view"><div class="page-title"><button class="back" data-go="more">‹</button><div><small>BACKUP</small><h2>Plan B</h2></div></div><div id="planbList" class="timeline"></div></section>
 
 <section id="walletView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>MONEY</small><h2>日幣換算</h2></div></div>
@@ -35,9 +36,47 @@
   <button class="bigmenu" data-go="cards">💳 <span><b>信用卡攻略</b><small>比較日本刷卡回饋＋Visa/Mastercard/JCB</small></span><i>›</i></button>
 </section>
 
-<section id="cardsView" class="view"><div class="page-title"><button class="back" data-go="wallet">‹</button><div><small>CARD GUIDE · UPDATED 2026/09/04</small><h2>日本刷哪張卡？</h2></div></div><div class="filterchips" id="cardFilters"><button class="active" data-filter="all">全部</button><button data-filter="5">優先</button><button data-filter="network">卡組織活動</button></div><div id="cardsList" class="card-list"></div></section>
+<section id="cardsView" class="view">
+  <div class="page-title"><button class="back" data-go="wallet">‹</button><div><small>CARD GUIDE · VERIFIED 2026/09/04</small><h2>日本刷哪張卡？</h2></div></div>
+  <section class="paper compare-card">
+    <div class="section-head"><h3>💳 即時比一比</h3><button id="cardProfileBtn" class="textlink">資格 / 卡組織設定</button></div>
+    <div class="compare-form">
+      <label>消費情境
+        <select id="cardScenario">
+          <option value="physical">日本一般實體</option>
+          <option value="mobile">Apple Pay / Google Pay</option>
+          <option value="booking">海外網路 / 訂房</option>
+          <option value="paypay">PayPay</option>
+          <option value="drugstore">日本藥妝 / 電器</option>
+        </select>
+      </label>
+      <label>金額（日圓）
+        <input id="cardAmount" inputmode="numeric" value="10000">
+      </label>
+      <label>海外交易費估算
+        <select id="foreignFee">
+          <option value="1.5">1.5%</option>
+          <option value="0">0%</option>
+        </select>
+      </label>
+      <button id="compareCardsBtn" class="primary">比較</button>
+    </div>
+    <p class="hint">結果以你設定的登錄/自扣資格計算「最高可得回饋」；活動上限、排除項目與清算匯率仍以銀行入帳為準。</p>
+    <div id="cardCompareResult" class="compare-results"></div>
+  </section>
+  <div class="filterchips" id="cardFilters"><button class="active" data-filter="all">全部權益</button><button data-filter="5">優先卡</button><button data-filter="network">Visa / Mastercard / JCB</button></div>
+  <div id="cardsList" class="card-list"></div>
+</section>
 
-<section id="expensesView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>EXPENSES</small><h2>旅行記帳</h2></div><button class="roundadd" id="addExpenseBtn">＋</button></div><div id="expenseSummary" class="summary-grid"></div><div id="expenseList" class="card-list"></div><div class="footer-actions"><button id="exportExpenses">匯出 CSV</button></div></section>
+<section id="expensesView" class="view">
+  <div class="page-title"><button class="back" data-go="home">‹</button><div><small>EXPENSES</small><h2>旅行記帳</h2></div><button class="roundadd" id="addExpenseBtn">＋</button></div>
+  <div class="expense-tools"><button id="scanReceiptBtn" class="primary">📷 掃描收據 Beta</button><span id="ocrStatus" class="hint">第一次辨識需網路下載日文 OCR 模組；辨識後一定要人工確認。</span></div>
+  <input type="file" id="receiptInput" accept="image/*" capture="environment" hidden>
+  <div id="expenseSummary" class="summary-grid"></div>
+  <div id="expenseBreakdown" class="paper expense-breakdown"></div>
+  <div id="expenseList" class="card-list"></div>
+  <div class="footer-actions"><button id="exportExpenses">匯出 CSV</button></div>
+</section>
 
 <section id="shoppingView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>SHOPPING</small><h2>必買清單</h2></div><button class="roundadd" id="addShoppingBtn">＋</button></div><div class="filterchips" id="shoppingFilters"><button class="active" data-cat="all">全部</button><button data-cat="食品">🍪 食品</button><button data-cat="電器">🔌 電器</button><button data-cat="藥妝">💊 藥妝</button><button data-cat="雜貨">🧸 雜貨</button></div><div id="shoppingList" class="card-list"></div></section>
 
