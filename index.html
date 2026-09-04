@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f6f2ea" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Japan Trip">
+  <title>Japan Road Trip 2026</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="hero">
+    <div>
+      <div class="eyebrow">2026/11/21–11/30 · 10天9夜</div>
+      <h1>🇯🇵 Japan Road Trip 2026</h1>
+      <p id="todayLabel">東京 → 富士 → 靜岡 → 濱松 → 江之島 → 鎌倉 → 成田</p>
+    </div>
+    <button id="installBtn" class="ghost" hidden>加入主畫面</button>
+  </header>
+
+  <main id="app">
+    <section id="homeView" class="view active">
+      <div class="quick-grid">
+        <button class="quick-card" data-go="today"><span>📅</span><b>TODAY</b><small>今日行程</small></button>
+        <button class="quick-card" data-go="hotels"><span>🏨</span><b>HOTELS</b><small>住宿</small></button>
+        <button class="quick-card" data-go="drive"><span>🚗</span><b>DRIVE</b><small>自駕・SA/PA</small></button>
+        <button class="quick-card" data-go="parking"><span>🅿️</span><b>PARKING</b><small>停車</small></button>
+        <button class="quick-card" data-go="planb"><span>🆘</span><b>PLAN B</b><small>備案</small></button>
+        <button class="quick-card" data-go="days"><span>🗓️</span><b>DAYS</b><small>每日行程</small></button>
+      </div>
+
+      <section class="panel">
+        <div class="section-title"><h2>下一個行程</h2><span id="nextDayTag" class="pill"></span></div>
+        <div id="nextItem"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title"><h2>旅程重點</h2></div>
+        <div class="mini-notes">
+          <p>11/27 Suzuki 歷史館 <strong>15:00固定預約</strong></p>
+          <p>11/29 鎌倉：Plan A 無位就立刻切 Plan B，不繞圈。</p>
+          <p>11/29 晚上 ART HOTEL 成田 <strong>一定泡湯</strong>。</p>
+        </div>
+      </section>
+    </section>
+
+    <section id="todayView" class="view">
+      <div class="section-title"><h2>📅 今日行程</h2><select id="todaySelect"></select></div>
+      <div id="todayList" class="timeline"></div>
+    </section>
+
+    <section id="daysView" class="view">
+      <div class="section-title"><h2>🗓️ 每日行程</h2></div>
+      <div id="daysTabs" class="day-tabs"></div>
+      <div id="daysList" class="timeline"></div>
+    </section>
+
+    <section id="driveView" class="view">
+      <div class="section-title"><h2>🚗 自駕・SA／PA</h2></div>
+      <div id="driveList" class="timeline"></div>
+    </section>
+
+    <section id="parkingView" class="view">
+      <div class="section-title"><h2>🅿️ 停車</h2></div>
+      <div id="parkingList" class="cards"></div>
+    </section>
+
+    <section id="hotelsView" class="view">
+      <div class="section-title"><h2>🏨 住宿</h2></div>
+      <div id="hotelList" class="cards"></div>
+    </section>
+
+    <section id="planbView" class="view">
+      <div class="section-title"><h2>🆘 Plan B</h2></div>
+      <div id="planbList" class="timeline"></div>
+    </section>
+
+    <section id="checklistView" class="view">
+      <div class="section-title"><h2>✅ 出發前確認</h2></div>
+      <div id="checklist" class="checklist"></div>
+      <button id="resetChecklist" class="text-btn">清除勾選</button>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button data-go="home" class="active"><span>⌂</span><small>首頁</small></button>
+    <button data-go="today"><span>📅</span><small>今天</small></button>
+    <button data-go="days"><span>🗓️</span><small>每日</small></button>
+    <button data-go="parking"><span>🅿️</span><small>停車</small></button>
+    <button data-go="checklist"><span>✓</span><small>確認</small></button>
+  </nav>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

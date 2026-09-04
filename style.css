@@ -1,0 +1,45 @@
+
+:root{
+  --bg:#f6f2ea; --card:#fffdf8; --ink:#262421; --muted:#777168;
+  --line:#e6ded3; --accent:#8d5f42; --accent-soft:#eee0d4; --shadow:0 7px 28px rgba(62,46,34,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;padding-bottom:92px}
+.hero{padding:calc(22px + env(safe-area-inset-top)) 20px 20px;max-width:920px;margin:auto;display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.eyebrow{font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:700}
+h1{font-size:26px;margin:6px 0 7px;line-height:1.1}
+.hero p{margin:0;color:var(--muted);font-size:14px}
+main{max-width:920px;margin:auto;padding:0 16px}
+.view{display:none}.view.active{display:block}
+.quick-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.quick-card{border:0;background:var(--card);box-shadow:var(--shadow);border-radius:20px;padding:18px;text-align:left;color:var(--ink);min-height:102px}
+.quick-card span{font-size:26px;display:block;margin-bottom:9px}.quick-card b{display:block;font-size:14px}.quick-card small{color:var(--muted);font-size:12px}
+.panel{background:var(--card);border-radius:22px;padding:18px;margin-top:14px;box-shadow:var(--shadow)}
+.section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 2px 14px}
+.section-title h2{font-size:20px;margin:0}
+select{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:8px 10px;color:var(--ink)}
+.timeline{display:flex;flex-direction:column;gap:10px}
+.item{display:grid;grid-template-columns:58px 1fr;gap:10px;background:var(--card);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
+.time{font-variant-numeric:tabular-nums;font-weight:800;color:var(--accent);font-size:13px;padding-top:2px}
+.item h3,.card h3{font-size:15px;margin:0 0 6px}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px}
+.pill{font-size:11px;border-radius:999px;background:var(--accent-soft);padding:4px 8px;color:#63432f;white-space:nowrap}
+.note{font-size:12px;line-height:1.55;color:var(--muted);margin:4px 0}
+.actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.action{display:inline-flex;text-decoration:none;border:1px solid var(--line);color:var(--ink);font-size:12px;padding:7px 9px;border-radius:10px;background:#fff}
+.cards{display:grid;grid-template-columns:1fr;gap:12px}
+.card{background:var(--card);border-radius:20px;padding:16px;box-shadow:var(--shadow)}
+.card .big{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px}
+.day-tabs{display:flex;overflow:auto;gap:8px;padding-bottom:10px;margin-bottom:4px}
+.day-tab{flex:none;border:1px solid var(--line);background:var(--card);padding:8px 11px;border-radius:999px}
+.day-tab.active{background:var(--ink);color:white;border-color:var(--ink)}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:76px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:rgba(255,253,248,.94);backdrop-filter:blur(18px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);z-index:10}
+.bottom-nav button{border:0;background:transparent;color:var(--muted);font-size:16px}.bottom-nav button.active{color:var(--accent);font-weight:800}.bottom-nav small{display:block;font-size:10px;margin-top:3px}
+.checklist{background:var(--card);border-radius:20px;box-shadow:var(--shadow);overflow:hidden}
+.check-row{display:flex;gap:10px;align-items:flex-start;padding:14px 15px;border-bottom:1px solid var(--line)}
+.check-row:last-child{border-bottom:0}.check-row input{width:20px;height:20px;margin-top:1px}.check-row.done span{text-decoration:line-through;color:var(--muted)}
+.text-btn,.ghost{border:1px solid var(--line);background:var(--card);padding:9px 12px;border-radius:12px;color:var(--ink)}
+.text-btn{margin:12px 0 0}
+.mini-notes p{margin:7px 0;font-size:13px;line-height:1.55}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+@media(min-width:700px){.quick-grid{grid-template-columns:repeat(3,1fr)}.cards{grid-template-columns:repeat(2,1fr)}}
