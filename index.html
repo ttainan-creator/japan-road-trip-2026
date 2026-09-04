@@ -14,6 +14,9 @@
   <button class="flight-strip" data-go="flights">
     <span>✈️</span><div><b>FLIGHTS</b><small id="homeFlightText">BR196 · 11/21 15:20 TPE T2 → NRT T1</small></div><i>›</i>
   </button>
+  <button class="rental-strip" data-go="rental">
+    <span>🚙</span><div><b>RENTAL CAR</b><small>NIPPON · 11/23 12:00 → 11/30 · ¥77,330</small></div><i>›</i>
+  </button>
   <div class="dashboard-grid">
     <button class="dash" data-go="today"><span>📅</span><div><b>TODAY</b><small id="homeTodayText">今日行程</small></div></button>
     <button class="dash" data-go="hotels"><span>🏨</span><div><b>TONIGHT</b><small id="homeHotelText">今晚住宿</small></div></button>
@@ -38,6 +41,11 @@
   <section class="trip-status">
     <div><small id="tripDateLabel">TODAY</small><h3 id="tripDayTitle">D01</h3><p id="tripProgressText">準備出發</p></div>
     <div class="progress-ring" id="tripProgressRing"><span>0%</span></div>
+  </section>
+
+  <section id="tripRentalSection" class="paper trip-rental-section" hidden>
+    <div class="section-head"><h3>🚙 今日租車</h3><button class="textlink" data-go="rental">租車詳情 →</button></div>
+    <div id="tripRentalCard"></div>
   </section>
 
   <section id="tripFlightSection" class="paper trip-flight-section" hidden>
@@ -89,6 +97,35 @@
 </section>
 
 
+
+
+<section id="rentalView" class="view">
+  <div class="page-title"><button class="back" data-go="home">‹</button><div><small>CAR RENTAL · NIPPON</small><h2>租車資訊</h2></div></div>
+  <div class="notice">🚙 取車／還車地點的 Map Code 均採 NIPPON Rent-A-Car 官方營業所資訊；導航時可直接複製。</div>
+
+  <section id="rentalHero" class="rental-hero"></section>
+
+  <div class="rental-office-grid">
+    <section id="rentalPickup" class="paper"></section>
+    <section id="rentalReturn" class="paper"></section>
+  </div>
+
+  <section class="paper">
+    <div class="section-head"><h3>💴 費用明細</h3><span class="tag">含稅</span></div>
+    <div id="rentalCosts" class="cost-table"></div>
+  </section>
+
+  <section class="paper">
+    <div class="section-head"><h3>🧰 已包含／附加</h3></div>
+    <div id="rentalIncluded" class="included-grid"></div>
+  </section>
+
+  <section class="paper rental-alert">
+    <div class="section-head"><h3>⚠️ 本次特別提醒</h3></div>
+    <p><b>11/23 取車是 12:00，不是早上8點。</b> D03 已調整成午後壓縮版。</p>
+    <p><b>11/30 訂單還車時間是19:00，但不要19:00才還車。</b> BR195 20:20 起飛，本行程仍以16:00左右完成還車為安全目標。</p>
+  </section>
+</section>
 
 <section id="itineraryEditView" class="view">
   <div class="page-title">
@@ -194,7 +231,7 @@
 <section id="guidesView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>READ BEFORE YOU GO</small><h2>景點導讀</h2></div></div><div id="guideList" class="card-list"></div></section>
 <section id="guideDetailView" class="view"><div class="page-title"><button class="back" data-go="guides">‹</button><div><small>FIELD GUIDE</small><h2 id="guideTitle">導讀</h2></div></div><article id="guideBody" class="guide-paper"></article></section>
 
-<section id="moreView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>TOOLS</small><h2>更多</h2></div></div><div class="menu-list"><button data-go="itineraryEdit">✏️ <span>行程編輯</span><i>›</i></button><button data-go="flights">✈️ <span>航班資訊</span><i>›</i></button><button data-go="days">🗓️ <span>每日行程</span><i>›</i></button><button data-go="drive">🚗 <span>自駕・SA/PA</span><i>›</i></button><button data-go="planb">🆘 <span>Plan B</span><i>›</i></button><button data-go="checklist">✅ <span>出發前確認</span><i>›</i></button><button id="importPrivateBtn">🔐 <span>匯入私人訂房資料</span><i>›</i></button><button id="exportBackupBtn">💾 <span>匯出私人資料備份</span><i>›</i></button><button id="importBackupBtn">♻️ <span>還原備份</span><i>›</i></button></div><input type="file" id="importFile" accept="application/json" hidden><input type="file" id="backupFile" accept="application/json" hidden></section>
+<section id="moreView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>TOOLS</small><h2>更多</h2></div></div><div class="menu-list"><button data-go="rental">🚙 <span>租車資訊</span><i>›</i></button><button data-go="itineraryEdit">✏️ <span>行程編輯</span><i>›</i></button><button data-go="flights">✈️ <span>航班資訊</span><i>›</i></button><button data-go="days">🗓️ <span>每日行程</span><i>›</i></button><button data-go="drive">🚗 <span>自駕・SA/PA</span><i>›</i></button><button data-go="planb">🆘 <span>Plan B</span><i>›</i></button><button data-go="checklist">✅ <span>出發前確認</span><i>›</i></button><button id="importPrivateBtn">🔐 <span>匯入私人訂房資料</span><i>›</i></button><button id="exportBackupBtn">💾 <span>匯出私人資料備份</span><i>›</i></button><button id="importBackupBtn">♻️ <span>還原備份</span><i>›</i></button></div><input type="file" id="importFile" accept="application/json" hidden><input type="file" id="backupFile" accept="application/json" hidden></section>
 <section id="checklistView" class="view"><div class="page-title"><button class="back" data-go="more">‹</button><div><small>PRE-TRIP</small><h2>出發前確認</h2></div></div><div id="checklist" class="checklist"></div><div class="footer-actions"><button id="resetChecklist">清除勾選</button></div></section>
 </main>
 <nav class="bottom-nav"><button data-go="home" class="active"><span>⌂</span><small>首頁</small></button><button data-go="trip"><span>▶</span><small>旅行</small></button><button data-go="wallet"><span>💴</span><small>錢包</small></button><button data-go="expenses"><span>🧾</span><small>記帳</small></button><button data-go="more"><span>•••</span><small>更多</small></button></nav>

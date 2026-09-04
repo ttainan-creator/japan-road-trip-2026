@@ -1,4 +1,4 @@
-const baseData=window.TRIP_DATA||[], hotels=window.HOTELS||[], flights=window.FLIGHTS||[], loungeData=window.LOUNGE_DATA||[], ref=window.REFERENCE_DATA||{cards:[],networkPromos:[],guides:[]};
+const baseData=window.TRIP_DATA||[], hotels=window.HOTELS||[], flights=window.FLIGHTS||[], loungeData=window.LOUNGE_DATA||[], rental=window.RENTAL_DATA||{}, ref=window.REFERENCE_DATA||{cards:[],networkPromos:[],guides:[]};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], pad=n=>String(n).padStart(2,'0');
 const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2);
@@ -34,7 +34,7 @@ async function saveItineraryCustom(){
 }
 function refreshEffectiveData(){data=buildEffectiveData();}
 
-function go(name){$$('.view').forEach(v=>v.classList.remove('active')); const v=$('#'+name+'View'); if(v)v.classList.add('active'); $$('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===name)); window.scrollTo({top:0,behavior:'smooth'}); if(name==='expenses')renderExpenses(); if(name==='shopping')renderShopping(); if(name==='notes')renderNotes(); if(name==='hotels')renderHotels(); if(name==='wallet')refreshRateUI(); if(name==='cards'){renderCards();renderCardCompare();} if(name==='trip')renderTripMode(); if(name==='flights')renderFlights(); if(name==='itineraryEdit')renderItineraryEditor();}
+function go(name){$$('.view').forEach(v=>v.classList.remove('active')); const v=$('#'+name+'View'); if(v)v.classList.add('active'); $$('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===name)); window.scrollTo({top:0,behavior:'smooth'}); if(name==='expenses')renderExpenses(); if(name==='shopping')renderShopping(); if(name==='notes')renderNotes(); if(name==='hotels')renderHotels(); if(name==='wallet')refreshRateUI(); if(name==='cards'){renderCards();renderCardCompare();} if(name==='trip')renderTripMode(); if(name==='flights')renderFlights(); if(name==='itineraryEdit')renderItineraryEditor(); if(name==='rental')renderRental();}
 $$('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
 function mapBtn(url){return url?`<a href="${esc(url)}" target="_blank" rel="noopener">📍 導航</a>`:''}
 function mapCode(code,status=''){
@@ -219,6 +219,14 @@ async function renderTripMode(){
   const completed=rows.filter(r=>done[itemKey(r)]).length;
   const pct=rows.length?Math.round(completed/rows.length*100):0;
   const selectedDate=dayDates[d];
+  const tripRentalSection=$('#tripRentalSection');
+  if(tripRentalSection && (d==='D03'||d==='D10')){
+    tripRentalSection.hidden=false;
+    const office=d==='D03'?rental.pickup:rental.return;
+    const title=d==='D03'?`12:00 取車｜${office.office}`:`目標16:00還車｜${office.office}`;
+    $('#tripRentalCard').innerHTML=`<div class="trip-rental-mini"><b>${esc(title)}</b><small>${esc(office.address||'')}</small><small>🗺 ${esc(office.mapcode||'')}</small><div class="actions">${mapBtn(office.map)}${mapCode(office.mapcode)}</div></div>`;
+  }else if(tripRentalSection){tripRentalSection.hidden=true;}
+
   const todaysFlight=flights.find(f=>f.date===selectedDate);
   const tripFlightSection=$('#tripFlightSection');
   if(todaysFlight && tripFlightSection){
@@ -293,6 +301,31 @@ $('#tripScanReceipt')?.addEventListener('click',()=>$('#scanReceiptBtn').click()
 $('#tripAddNote')?.addEventListener('click',()=>$('#addNoteBtn').click());
 renderTripMode();
 
+
+
+// RENTAL CAR
+function yen(n){return `¥${Number(n||0).toLocaleString()}`}
+function renderRental(){
+  if(!rental?.company)return;
+  $('#rentalHero').innerHTML=`<div><small>${esc(rental.company)}</small><h2>${esc(rental.vehicle)}</h2><p>${esc(rental.vehicleExample||'')}</p><div class="meta"><span class="pill">${esc(rental.payment||'')}</span><span class="pill">${esc(rental.bookingSource||'')}</span></div></div><div class="rental-total"><small>費用合計</small><b>${yen(rental.price?.total)}</b><span>含稅</span></div>`;
+  const officeHTML=(o,label,time)=>`<div class="section-head"><h3>${label}</h3><span class="tag">${esc(time)}</span></div>
+    <h4>${esc(o.office||'')}</h4><p class="note">${esc(o.address||'')}</p>
+    ${o.access?`<p class="note">${esc(o.access)}</p>`:''}
+    <p class="note">☎ ${esc(o.phone||'')} · ${esc(o.hours||'')}</p>
+    <div class="mapcode-feature"><small>MAP CODE</small><b>${esc(o.mapcode||'—')}</b><button onclick="copyText('${esc(o.mapcode||'')}')">複製</button></div>
+    <div class="actions">${mapBtn(o.map)}${mapCode(o.mapcode)}</div>`;
+  $('#rentalPickup').innerHTML=officeHTML(rental.pickup,'📍 取車',`${rental.pickup.date} ${rental.pickup.time}`);
+  $('#rentalReturn').innerHTML=officeHTML(rental.return,'🏁 還車',`${rental.return.date}｜預約 ${rental.return.bookedTime}／目標 ${rental.return.targetTime}`);
+  const p=rental.price||{};
+  const rows=[
+    ['車輛基本費用',p.base],
+    ['甲租乙還',p.oneWay],
+    ['2026 Tabirai Deals 夏日特賣',p.discount],
+    ['租借 ETC 卡',p.etcCard]
+  ];
+  $('#rentalCosts').innerHTML=rows.map(x=>`<div class="cost-row"><span>${esc(x[0])}</span><b class="${Number(x[1])<0?'discount':''}">${yen(x[1])}</b></div>`).join('')+`<div class="cost-row total"><span>費用合計</span><b>${yen(p.total)}</b></div>`;
+  $('#rentalIncluded').innerHTML=[...(rental.included||[]).map(x=>`<span>✓ ${esc(x)}</span>`),...(rental.extras||[]).map(x=>`<span>＋ ${esc(x)}</span>`)].join('');
+}
 
 // EDITABLE ITINERARY
 const editDaySel=$('#itineraryEditDay');
