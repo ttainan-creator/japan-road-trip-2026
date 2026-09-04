@@ -47,3 +47,13 @@
 - Map Code 介面統一：所有有 Google Maps 的項目旁都會顯示 Map Code。
 - 已核實者顯示可複製代碼；路線、未指定店家或無可靠專用碼者顯示「Map Code：—」，不以猜測值誤導。
 - 本版主要 Map Code 以 Mapion 查核（2026/09/04）。
+
+
+## V2.6｜Editable Itinerary + Lounge Guide
+- 新增「行程編輯」：可在手機新增、修改、隱藏內建行程；自行新增的行程可編輯／刪除。
+- 內建行程不會被真正刪除，可逐筆或逐日恢復原始值；也可一鍵恢復全部 GitHub 原始行程。
+- 修改資料同時保存在 localStorage 與 IndexedDB settings，會跟著「私人資料備份」匯出。
+- 航班頁新增貴賓室攻略：
+  - BR196 桃園 T2：玉山國旅卡 / U.First（依使用門檻及 U.First 當日據點）。
+  - BR195 成田 T1：JCB / IASS EXECUTIVE LOUNGE 1（JCB Gold 等級以上等條件依 JCB/發卡銀行為準）。
+- 貴賓室資格可在 App 本機標記「已確認」，不會上傳 GitHub。

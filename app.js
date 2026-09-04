@@ -1,10 +1,40 @@
-const data=window.TRIP_DATA||[], hotels=window.HOTELS||[], flights=window.FLIGHTS||[], ref=window.REFERENCE_DATA||{cards:[],networkPromos:[],guides:[]};
+const baseData=window.TRIP_DATA||[], hotels=window.HOTELS||[], flights=window.FLIGHTS||[], loungeData=window.LOUNGE_DATA||[], ref=window.REFERENCE_DATA||{cards:[],networkPromos:[],guides:[]};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], pad=n=>String(n).padStart(2,'0');
 const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2);
 const dt=s=>new Date(String(s).replace(' ','T')); const dateOf=r=>r.日期時間?.slice(0,10)||''; const timeOf=r=>r.日期時間?.slice(11,16)||'';
-const days=[...new Set(data.map(r=>r.Day))].sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1))); const dayDates={}; days.forEach(d=>{const r=data.find(x=>x.Day===d&&x.日期時間);dayDates[d]=r?dateOf(r):''});
-function go(name){$$('.view').forEach(v=>v.classList.remove('active')); const v=$('#'+name+'View'); if(v)v.classList.add('active'); $$('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===name)); window.scrollTo({top:0,behavior:'smooth'}); if(name==='expenses')renderExpenses(); if(name==='shopping')renderShopping(); if(name==='notes')renderNotes(); if(name==='hotels')renderHotels(); if(name==='wallet')refreshRateUI(); if(name==='cards'){renderCards();renderCardCompare();} if(name==='trip')renderTripMode(); if(name==='flights')renderFlights();}
+
+const ITIN_LOCAL_KEY='japan-trip-itinerary-custom-v1';
+function loadItineraryLocal(){
+  try{
+    const x=JSON.parse(localStorage.getItem(ITIN_LOCAL_KEY)||'{}');
+    return {overrides:x.overrides||{},hidden:x.hidden||{},added:Array.isArray(x.added)?x.added:[]};
+  }catch{return {overrides:{},hidden:{},added:[]}}
+}
+let itineraryCustom=loadItineraryLocal();
+
+function buildEffectiveData(){
+  const built=baseData
+    .filter(r=>!itineraryCustom.hidden[r._id])
+    .map(r=>{
+      const o=itineraryCustom.overrides[r._id];
+      return o?{...r,...o,_edited:true}:{...r};
+    });
+  const added=itineraryCustom.added.map(r=>({...r,_custom:true}));
+  return [...built,...added].sort((a,b)=>String(a.日期時間).localeCompare(String(b.日期時間)));
+}
+let data=buildEffectiveData();
+
+const days=[...new Set(baseData.map(r=>r.Day))].sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1)));
+const dayDates={};days.forEach(d=>{const r=baseData.find(x=>x.Day===d&&x.日期時間);dayDates[d]=r?dateOf(r):''});
+
+async function saveItineraryCustom(){
+  localStorage.setItem(ITIN_LOCAL_KEY,JSON.stringify(itineraryCustom));
+  await TripDB.put('settings',{id:'itineraryCustom',value:itineraryCustom});
+}
+function refreshEffectiveData(){data=buildEffectiveData();}
+
+function go(name){$$('.view').forEach(v=>v.classList.remove('active')); const v=$('#'+name+'View'); if(v)v.classList.add('active'); $$('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===name)); window.scrollTo({top:0,behavior:'smooth'}); if(name==='expenses')renderExpenses(); if(name==='shopping')renderShopping(); if(name==='notes')renderNotes(); if(name==='hotels')renderHotels(); if(name==='wallet')refreshRateUI(); if(name==='cards'){renderCards();renderCardCompare();} if(name==='trip')renderTripMode(); if(name==='flights')renderFlights(); if(name==='itineraryEdit')renderItineraryEditor();}
 $$('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
 function mapBtn(url){return url?`<a href="${esc(url)}" target="_blank" rel="noopener">📍 導航</a>`:''}
 function mapCode(code,status=''){
@@ -15,7 +45,7 @@ function mapCode(code,status=''){
 function rowMapActions(r){return `${mapBtn(r['Google Maps'])}${r['Google Maps']?mapCode(r['Map Code'],r['Map Code Status']):mapCode(r['Map Code'])}`;}
 window.copyText=async t=>{try{await navigator.clipboard.writeText(t);toast('已複製 '+t)}catch{prompt('複製',t)}};
 function toast(t){const d=document.createElement('div');d.textContent=t;d.style='position:fixed;left:50%;bottom:95px;transform:translateX(-50%);background:#28231e;color:white;padding:10px 14px;border-radius:999px;font-size:12px;z-index:99';document.body.appendChild(d);setTimeout(()=>d.remove(),1600)}
-function itemHTML(r){const notes=[r['車程／保留'],r['停車'],r['Plan B'],r['備註']].filter(Boolean).slice(0,3);return `<article class="item"><div class="time">${esc(timeOf(r))}</div><div><h3>${esc(r['名稱'])}</h3><div class="meta">${r['類型']?`<span class="pill">${esc(r['類型'])}</span>`:''}${r['地區']?`<span class="pill">${esc(r['地區'])}</span>`:''}</div>${notes.map(n=>`<p class="note">${esc(n)}</p>`).join('')}<div class="actions">${rowMapActions(r)}</div></div></article>`}
+function itemHTML(r){const notes=[r['車程／保留'],r['停車'],r['Plan B'],r['備註']].filter(Boolean).slice(0,3);return `<article class="item"><div class="time">${esc(timeOf(r))}</div><div><h3>${esc(r['名稱'])}</h3><div class="meta">${r['類型']?`<span class="pill">${esc(r['類型'])}</span>`:''}${r['地區']?`<span class="pill">${esc(r['地區'])}</span>`:''}${r._custom?`<span class="pill custom-pill">＋自訂</span>`:r._edited?`<span class="pill custom-pill">✏️已修改</span>`:''}</div>${notes.map(n=>`<p class="note">${esc(n)}</p>`).join('')}<div class="actions">${rowMapActions(r)}</div></div></article>`}
 function renderList(el,rows){el.innerHTML=rows.length?rows.map(itemHTML).join(''):'<div class="empty">目前沒有資料</div>'}
 function currentTripDay(){const now=new Date(),key=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;return days.find(d=>dayDates[d]===key)||'D01'}
 // countdown/home
@@ -84,9 +114,10 @@ async function renderFlights(){
         <div><b>${esc(f.arrive)}</b><span>${esc(f.to)}</span><small>${esc(f.toTerminal)} · ${esc(f.arriveTZ)}</small></div>
       </div>
       <div class="flight-notes"><p>📅 ${esc(f.date)}</p><p>🧳 ${esc(f.airportTarget)}</p>${f.id==='BR196'?`<p>💺 ${esc(seatCountdownText(f,done))}</p>`:'<p>💺 回程已選好座位</p>'}</div>
-      <div class="actions">${mapBtn(f.map)}${mapcode}<button onclick="downloadFlightICS('${f.id}')">📅 航班加入行事曆</button></div>
+      <div class="actions">${mapBtn(f.map)}${mapcode}<button onclick="scrollToLounge('${f.id}')">🛋 貴賓室</button><button onclick="downloadFlightICS('${f.id}')">📅 航班加入行事曆</button></div>
     </article>`;
   }).join('');
+  renderLounges();
 }
 function icsEscape(s){return String(s).replace(/\\/g,'\\\\').replace(/,/g,'\\,').replace(/;/g,'\\;').replace(/\n/g,'\\n')}
 function dlICS(name,body){downloadBlob(new Blob([body],{type:'text/calendar;charset=utf-8'}),name)}
@@ -110,6 +141,43 @@ function renderHomeFlight(){
   el.textContent=`${f.flight} · ${f.date.slice(5).replace('-','/')} ${f.depart} ${f.from} → ${f.to}`;
 }
 renderHomeFlight();
+
+
+async function loungeEligible(id){
+  return !!(await TripDB.get('settings',`loungeEligible_${id}`))?.value;
+}
+window.toggleLoungeEligible=async(id)=>{
+  const current=await loungeEligible(id);
+  await TripDB.put('settings',{id:`loungeEligible_${id}`,value:!current});
+  renderLounges();
+};
+window.scrollToLounge=flight=>{
+  const el=document.querySelector(`[data-lounge-flight="${flight}"]`);
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+};
+async function renderLounges(){
+  const el=$('#loungeList');if(!el)return;
+  const cards=[];
+  for(const l of loungeData){
+    const ok=await loungeEligible(l.id);
+    cards.push(`<article class="lounge-card" data-lounge-flight="${esc(l.flight)}">
+      <div class="lounge-head">
+        <div><small>${esc(l.flight)} · ${esc(l.airport)}</small><h3>${esc(l.title)}</h3></div>
+        <button class="eligibility ${ok?'done':''}" onclick="toggleLoungeEligible('${esc(l.id)}')">${ok?'✓ 已確認資格':'○ 尚未確認資格'}</button>
+      </div>
+      <div class="lounge-rule"><b>使用資格</b><p>${esc(l.eligibility)}</p></div>
+      <p class="note">${esc(l.usage)}</p>
+      <div class="lounge-spots">${l.spots.map(s=>`<div class="lounge-spot"><b>${esc(s.name)}</b><span>${esc(s.location||'')}</span><span>${esc(s.hours||'')}</span>${s.services?`<span>${esc(s.services)}</span>`:''}</div>`).join('')}</div>
+      <div class="actions">
+        <a href="${esc(l.source)}" target="_blank">官方據點 ↗</a>
+        ${l.project?`<a href="${esc(l.project)}" target="_blank">權益說明 ↗</a>`:''}
+        ${l.airportOfficial?`<a href="${esc(l.airportOfficial)}" target="_blank">機場官方 ↗</a>`:''}
+      </div>
+      <p class="verified-note">最後查核：${esc(l.verified)}。合作據點及卡片資格可能異動，出發前建議再確認一次。</p>
+    </article>`);
+  }
+  el.innerHTML=cards.join('');
+}
 
 // LIVE TRIP MODE
 const tripSel=$('#tripDaySelect');
@@ -225,7 +293,165 @@ $('#tripScanReceipt')?.addEventListener('click',()=>$('#scanReceiptBtn').click()
 $('#tripAddNote')?.addEventListener('click',()=>$('#addNoteBtn').click());
 renderTripMode();
 
-renderList($('#driveList'),data.filter(r=>['移動','SA・PA'].includes(r['類型'])));renderList($('#planbList'),data.filter(r=>r['類型']==='備案'));
+
+// EDITABLE ITINERARY
+const editDaySel=$('#itineraryEditDay');
+days.forEach(d=>{
+  const o=document.createElement('option');
+  o.value=d;o.textContent=`${d} · ${dayDates[d].slice(5).replace('-','/')}`;
+  editDaySel.appendChild(o)
+});
+editDaySel.value=currentTripDay();
+editDaySel.addEventListener('change',renderItineraryEditor);
+
+function baseRow(id){return baseData.find(r=>r._id===id)}
+function customRow(id){return itineraryCustom.added.find(r=>r._id===id)}
+function effectiveRowForEditor(id){
+  const b=baseRow(id);
+  if(b)return {...b,...(itineraryCustom.overrides[id]||{})};
+  return customRow(id);
+}
+function itemDayFromDate(date, fallback){
+  const d=days.find(x=>dayDates[x]===date);
+  return d||fallback||'D01';
+}
+function itineraryFormFields(r,defaultDay){
+  const date=dateOf(r)||dayDates[defaultDay]||'2026-11-21';
+  const time=timeOf(r)||'12:00';
+  return [
+    ['day','Day','select',r.Day||defaultDay,days],
+    ['date','日期','date',date],
+    ['time','時間','time',time],
+    ['name','名稱','text',r['名稱']||''],
+    ['type','類型','select',r['類型']||'景點',['景點','住宿','餐飲','移動','停車','SA・PA','購物','備案','參考資料']],
+    ['priority','優先度','select',r['優先度']||'★★★★ 推薦',['★★★★★ 必去','★★★★ 推薦','★★★ 有時間','備案','']],
+    ['area','地區','text',r['地區']||''],
+    ['maps','Google Maps','url',r['Google Maps']||''],
+    ['mapcode','Map Code','text',r['Map Code']||''],
+    ['parking','停車','textarea',r['停車']||''],
+    ['reserve','預約','select',r['預約']||'不需預約',['已預約','不需預約','需確認','未預約','']],
+    ['drive','車程／保留','textarea',r['車程／保留']||''],
+    ['planb','Plan B','textarea',r['Plan B']||''],
+    ['note','備註','textarea',r['備註']||''],
+    ['cost','費用','text',r['費用']||'']
+  ];
+}
+function formToItinerary(v,old={}){
+  const day=itemDayFromDate(v.date,v.day);
+  return {
+    ...old,
+    Day:day,
+    日期時間:`${v.date} ${v.time||'00:00'}`,
+    名稱:v.name||'未命名行程',
+    類型:v.type||'景點',
+    優先度:v.priority||'',
+    地區:v.area||'',
+    'Google Maps':v.maps||'',
+    'Map Code':v.mapcode||'',
+    'Map Code Status':v.mapcode?'手動輸入':'',
+    停車:v.parking||'',
+    預約:v.reserve||'',
+    '車程／保留':v.drive||'',
+    'Plan B':v.planb||'',
+    備註:v.note||'',
+    費用:v.cost||''
+  };
+}
+window.editItineraryItem=id=>{
+  const r=effectiveRowForEditor(id);if(!r)return;
+  openDialog(r._custom?'編輯自訂行程':'修改內建行程',itineraryFormFields(r,r.Day),async v=>{
+    const updated=formToItinerary(v,r);
+    if(r._custom){
+      const i=itineraryCustom.added.findIndex(x=>x._id===id);
+      itineraryCustom.added[i]={...updated,_id:id};
+    }else{
+      const b=baseRow(id);
+      const copy={...updated};delete copy._edited;delete copy._custom;
+      itineraryCustom.overrides[id]=copy;
+    }
+    await saveItineraryCustom();refreshItineraryEverywhere();toast('行程已儲存')
+  })
+};
+$('#addItineraryBtn')?.addEventListener('click',()=>{
+  const day=editDaySel.value||currentTripDay();
+  const blank={Day:day,日期時間:`${dayDates[day]} 12:00`,類型:'景點',優先度:'★★★★ 推薦'};
+  openDialog('新增行程',itineraryFormFields(blank,day),async v=>{
+    const row=formToItinerary(v,blank);
+    row._id=`custom-${uid()}`;
+    itineraryCustom.added.push(row);
+    await saveItineraryCustom();editDaySel.value=row.Day;refreshItineraryEverywhere();toast('已新增行程')
+  })
+});
+window.toggleItineraryHidden=async id=>{
+  itineraryCustom.hidden[id]=!itineraryCustom.hidden[id];
+  await saveItineraryCustom();refreshItineraryEverywhere()
+};
+window.restoreItineraryItem=async id=>{
+  delete itineraryCustom.overrides[id];delete itineraryCustom.hidden[id];
+  await saveItineraryCustom();refreshItineraryEverywhere();toast('已恢復原始值')
+};
+window.deleteCustomItinerary=async id=>{
+  if(!confirm('刪除這筆你自行新增的行程？'))return;
+  itineraryCustom.added=itineraryCustom.added.filter(x=>x._id!==id);
+  await saveItineraryCustom();refreshItineraryEverywhere()
+};
+function renderItineraryEditor(){
+  if(!editDaySel)return;
+  const day=editDaySel.value||currentTripDay();
+  const baseRows=baseData.filter(r=>r.Day===day).map(r=>{
+    const merged={...r,...(itineraryCustom.overrides[r._id]||{})};
+    return {...merged,_source:'base',_hidden:!!itineraryCustom.hidden[r._id]};
+  });
+  const customs=itineraryCustom.added.filter(r=>r.Day===day).map(r=>({...r,_source:'custom'}));
+  const rows=[...baseRows,...customs].sort((a,b)=>String(a.日期時間).localeCompare(String(b.日期時間)));
+  $('#itineraryEditorList').innerHTML=rows.length?rows.map(r=>`
+    <article class="editor-card ${r._hidden?'hidden-row':''}">
+      <div class="editor-time">${esc(timeOf(r))}</div>
+      <div class="grow">
+        <div class="meta"><span class="pill">${esc(r['類型']||'')}</span>${r._source==='custom'?'<span class="pill custom-pill">＋自行新增</span>':itineraryCustom.overrides[r._id]?'<span class="pill custom-pill">✏️已修改</span>':'<span class="pill">原始</span>'}${r._hidden?'<span class="pill hidden-pill">👁 已隱藏</span>':''}</div>
+        <h3>${esc(r['名稱'])}</h3>
+        ${r['備註']?`<p class="note">${esc(r['備註'])}</p>`:''}
+        <div class="actions">
+          <button onclick="editItineraryItem('${esc(r._id)}')">✏️ 編輯</button>
+          ${r._source==='base'?`<button onclick="toggleItineraryHidden('${esc(r._id)}')">${r._hidden?'👁 顯示':'🙈 隱藏'}</button><button onclick="restoreItineraryItem('${esc(r._id)}')">↺ 原始值</button>`:`<button onclick="deleteCustomItinerary('${esc(r._id)}')">🗑 刪除</button>`}
+          ${rowMapActions(r)}
+        </div>
+      </div>
+    </article>`).join(''):'<div class="empty">這一天沒有行程。</div>';
+}
+$('#resetItineraryDay')?.addEventListener('click',async()=>{
+  const d=editDaySel.value;
+  if(!confirm(`恢復 ${d} 的所有原始行程？這一天自行新增的項目也會刪除。`))return;
+  baseData.filter(r=>r.Day===d).forEach(r=>{delete itineraryCustom.overrides[r._id];delete itineraryCustom.hidden[r._id]});
+  itineraryCustom.added=itineraryCustom.added.filter(r=>r.Day!==d);
+  await saveItineraryCustom();refreshItineraryEverywhere();toast(`${d} 已恢復原始行程`)
+});
+$('#resetAllItinerary')?.addEventListener('click',async()=>{
+  if(!confirm('確定要清除全部行程修改與自行新增項目，恢復 GitHub 原始行程？'))return;
+  itineraryCustom={overrides:{},hidden:{},added:[]};
+  await saveItineraryCustom();refreshItineraryEverywhere();toast('全部行程已恢復')
+});
+
+function renderRoadViews(){
+  renderList($('#driveList'),data.filter(r=>['移動','SA・PA'].includes(r['類型'])));
+  renderList($('#planbList'),data.filter(r=>r['類型']==='備案'));
+}
+function renderParkingView(){
+  renderParkingView();
+}
+function refreshItineraryEverywhere(){
+  refreshEffectiveData();
+  renderToday();
+  const activeDay=$('#daysTabs button.active')?.dataset.day||'D01';
+  renderDay(activeDay);
+  renderRoadViews();
+  renderParkingView();
+  nextItem();
+  if($('#itineraryEditView')?.classList.contains('active'))renderItineraryEditor();
+  if($('#tripView')?.classList.contains('active'))renderTripMode();
+}
+
+renderRoadViews();
 $('#parkingList').innerHTML=data.filter(r=>r['類型']==='停車').map(r=>`<article class="card"><div class="big">${esc(r.Day)} · ${esc(dateOf(r).slice(5).replace('-','/'))} ${esc(timeOf(r))}</div><h3>${esc(r['名稱'])}</h3>${r['停車']?`<p class="note">${esc(r['停車'])}</p>`:''}${r['Plan B']?`<p class="note"><b>Plan B：</b>${esc(r['Plan B'])}</p>`:''}<div class="actions">${rowMapActions(r)}</div></article>`).join('');
 function nextItem(){const now=new Date();let future=data.filter(r=>r.日期時間&&dt(r.日期時間)>=now&&r['類型']!=='備案').sort((a,b)=>dt(a.日期時間)-dt(b.日期時間));if(!future.length)future=data;$('#nextItem').innerHTML=itemHTML(future[0]);$('#homeTodayText').textContent=`${currentTripDay()} · ${dayDates[currentTripDay()].slice(5).replace('-','/')}`;const h=hotels.find(x=>x.dates.includes(dayDates[currentTripDay()].slice(5).replace('-','/')))||hotels[0];if(h)$('#homeHotelText').textContent=h.name;}
 nextItem();
@@ -697,7 +923,28 @@ async function compressImage(file,max=1280,quality=.72){return new Promise((res,
 // Backup/import
 function downloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
 $('#exportBackupBtn').addEventListener('click',async()=>{const payload=await TripDB.exportAll();downloadBlob(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),'JapanTrip-private-backup.json')});
-$('#importPrivateBtn').addEventListener('click',()=>$('#importFile').click());$('#importBackupBtn').addEventListener('click',()=>$('#backupFile').click());async function handleImport(file){const j=JSON.parse(await file.text());await TripDB.importAll(j);toast('私人資料已匯入');renderHotels();renderExpenses();renderShopping();renderNotes()}$('#importFile').addEventListener('change',e=>e.target.files[0]&&handleImport(e.target.files[0]));$('#backupFile').addEventListener('change',e=>e.target.files[0]&&handleImport(e.target.files[0]));
+$('#importPrivateBtn').addEventListener('click',()=>$('#importFile').click());$('#importBackupBtn').addEventListener('click',()=>$('#backupFile').click());async function handleImport(file){
+  const j=JSON.parse(await file.text());
+  await TripDB.importAll(j);
+  const itin=await TripDB.get('settings','itineraryCustom');
+  if(itin?.value){
+    itineraryCustom=itin.value;
+    localStorage.setItem(ITIN_LOCAL_KEY,JSON.stringify(itineraryCustom));
+    refreshItineraryEverywhere();
+  }
+  toast('私人資料已匯入');
+  renderHotels();renderExpenses();renderShopping();renderNotes();
+}$('#importFile').addEventListener('change',e=>e.target.files[0]&&handleImport(e.target.files[0]));$('#backupFile').addEventListener('change',e=>e.target.files[0]&&handleImport(e.target.files[0]));
 // PWA
 let deferredPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBtn').hidden=false});$('#installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('#installBtn').hidden=true}});if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js'));
-TripDB.open();renderHotels();renderShopping();renderExpenses();renderNotes();
+TripDB.open().then(async()=>{
+  if(!localStorage.getItem(ITIN_LOCAL_KEY)){
+    const itin=await TripDB.get('settings','itineraryCustom');
+    if(itin?.value){
+      itineraryCustom=itin.value;
+      localStorage.setItem(ITIN_LOCAL_KEY,JSON.stringify(itineraryCustom));
+      refreshItineraryEverywhere();
+    }
+  }
+});
+renderHotels();renderShopping();renderExpenses();renderNotes();

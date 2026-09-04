@@ -23,7 +23,7 @@
   <section id="homeBookingAlert" class="paper booking-alert"></section>
   <section class="paper"><div class="section-head"><h3>下一個行程</h3><button class="textlink" data-go="today">完整時間軸 →</button></div><div id="nextItem"></div></section>
   <section class="paper"><div class="section-head"><h3>旅行工具</h3></div><div class="tool-grid">
-    <button data-go="cards">💳<small>刷哪張卡</small></button><button data-go="shopping">🛍<small>必買清單</small></button><button data-go="notes">📝<small>旅行日記</small></button><button data-go="guides">📚<small>景點導讀</small></button><button data-go="parking">🅿️<small>停車</small></button><button data-go="more">•••<small>更多</small></button>
+    <button data-go="cards">💳<small>刷哪張卡</small></button><button data-go="itineraryEdit">✏️<small>編輯行程</small></button><button data-go="shopping">🛍<small>必買清單</small></button><button data-go="notes">📝<small>旅行日記</small></button><button data-go="guides">📚<small>景點導讀</small></button><button data-go="parking">🅿️<small>停車</small></button><button data-go="more">•••<small>更多</small></button>
   </div></section>
 </section>
 
@@ -89,14 +89,41 @@
 </section>
 
 
+
+<section id="itineraryEditView" class="view">
+  <div class="page-title">
+    <button class="back" data-go="more">‹</button>
+    <div><small>EDITABLE ITINERARY</small><h2>行程編輯</h2></div>
+    <button class="roundadd" id="addItineraryBtn">＋</button>
+  </div>
+
+  <div class="notice">
+    ✏️ 這裡的修改只存在你的裝置，不會改掉 GitHub 原始行程。內建行程可「修改／隱藏／恢復原始值」；自己新增的行程可自由編輯或刪除。私人備份也會包含這些修改。
+  </div>
+
+  <section class="paper itinerary-editor-tools">
+    <div class="editor-toolbar">
+      <label>編輯日期
+        <select id="itineraryEditDay"></select>
+      </label>
+      <button id="resetItineraryDay">↺ 恢復這一天</button>
+      <button id="resetAllItinerary" class="danger-soft">⚠️ 恢復全部原始行程</button>
+    </div>
+  </section>
+
+  <div id="itineraryEditorList" class="editor-list"></div>
+</section>
+
 <section id="flightsView" class="view">
   <div class="page-title"><button class="back" data-go="home">‹</button><div><small>AIR · EVA AIR</small><h2>航班資訊</h2></div></div>
   <div class="notice">✈️ 時間以出發／抵達機場當地時間顯示。實際航班、登機門與航廈異動仍以長榮航空及機場當日資訊為準。</div>
   <div id="flightReminder"></div>
   <div id="flightList" class="flight-list"></div>
+  <div class="section-head lounge-section-head"><h3>🛋 貴賓室攻略</h3><span class="tag">2026/09/04查核</span></div>
+  <div id="loungeList" class="lounge-list"></div>
 </section>
 
-<section id="todayView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>ITINERARY</small><h2>今日行程</h2></div><select id="todaySelect"></select></div><div id="todayList" class="timeline"></div></section>
+<section id="todayView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>ITINERARY</small><h2>今日行程</h2></div><div class="title-tools"><button class="small-edit-btn" data-go="itineraryEdit">✏️</button><select id="todaySelect"></select></div></div><div id="todayList" class="timeline"></div></section>
 <section id="daysView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>ALL DAYS</small><h2>每日行程</h2></div></div><div id="daysTabs" class="day-tabs"></div><div id="daysList" class="timeline"></div></section>
 <section id="driveView" class="view"><div class="page-title"><button class="back" data-go="more">‹</button><div><small>ROAD</small><h2>自駕・SA/PA</h2></div></div><div id="driveList" class="timeline"></div></section>
 <section id="parkingView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>PARKING</small><h2>停車・Plan B</h2></div></div><div id="parkingList" class="card-list"></div></section>
@@ -167,7 +194,7 @@
 <section id="guidesView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>READ BEFORE YOU GO</small><h2>景點導讀</h2></div></div><div id="guideList" class="card-list"></div></section>
 <section id="guideDetailView" class="view"><div class="page-title"><button class="back" data-go="guides">‹</button><div><small>FIELD GUIDE</small><h2 id="guideTitle">導讀</h2></div></div><article id="guideBody" class="guide-paper"></article></section>
 
-<section id="moreView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>TOOLS</small><h2>更多</h2></div></div><div class="menu-list"><button data-go="flights">✈️ <span>航班資訊</span><i>›</i></button><button data-go="days">🗓️ <span>每日行程</span><i>›</i></button><button data-go="drive">🚗 <span>自駕・SA/PA</span><i>›</i></button><button data-go="planb">🆘 <span>Plan B</span><i>›</i></button><button data-go="checklist">✅ <span>出發前確認</span><i>›</i></button><button id="importPrivateBtn">🔐 <span>匯入私人訂房資料</span><i>›</i></button><button id="exportBackupBtn">💾 <span>匯出私人資料備份</span><i>›</i></button><button id="importBackupBtn">♻️ <span>還原備份</span><i>›</i></button></div><input type="file" id="importFile" accept="application/json" hidden><input type="file" id="backupFile" accept="application/json" hidden></section>
+<section id="moreView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>TOOLS</small><h2>更多</h2></div></div><div class="menu-list"><button data-go="itineraryEdit">✏️ <span>行程編輯</span><i>›</i></button><button data-go="flights">✈️ <span>航班資訊</span><i>›</i></button><button data-go="days">🗓️ <span>每日行程</span><i>›</i></button><button data-go="drive">🚗 <span>自駕・SA/PA</span><i>›</i></button><button data-go="planb">🆘 <span>Plan B</span><i>›</i></button><button data-go="checklist">✅ <span>出發前確認</span><i>›</i></button><button id="importPrivateBtn">🔐 <span>匯入私人訂房資料</span><i>›</i></button><button id="exportBackupBtn">💾 <span>匯出私人資料備份</span><i>›</i></button><button id="importBackupBtn">♻️ <span>還原備份</span><i>›</i></button></div><input type="file" id="importFile" accept="application/json" hidden><input type="file" id="backupFile" accept="application/json" hidden></section>
 <section id="checklistView" class="view"><div class="page-title"><button class="back" data-go="more">‹</button><div><small>PRE-TRIP</small><h2>出發前確認</h2></div></div><div id="checklist" class="checklist"></div><div class="footer-actions"><button id="resetChecklist">清除勾選</button></div></section>
 </main>
 <nav class="bottom-nav"><button data-go="home" class="active"><span>⌂</span><small>首頁</small></button><button data-go="trip"><span>▶</span><small>旅行</small></button><button data-go="wallet"><span>💴</span><small>錢包</small></button><button data-go="expenses"><span>🧾</span><small>記帳</small></button><button data-go="more"><span>•••</span><small>更多</small></button></nav>
