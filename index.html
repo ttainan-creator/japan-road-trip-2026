@@ -17,6 +17,9 @@
   <button class="rental-strip" data-go="rental">
     <span>🚙</span><div><b>RENTAL CAR</b><small>NIPPON · 11/23 12:00 → 11/30 · ¥77,330</small></div><i>›</i>
   </button>
+  <button class="pretrip-strip" data-go="pretrip">
+    <span>⏳</span><div><b>PRE-TRIP</b><small id="homeReminderText">下一個重要期限載入中…</small></div><i>›</i>
+  </button>
   <div class="dashboard-grid">
     <button class="dash" data-go="today"><span>📅</span><div><b>TODAY</b><small id="homeTodayText">今日行程</small></div></button>
     <button class="dash" data-go="hotels"><span>🏨</span><div><b>TONIGHT</b><small id="homeHotelText">今晚住宿</small></div></button>
@@ -231,7 +234,91 @@
 <section id="guidesView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>READ BEFORE YOU GO</small><h2>景點導讀</h2></div></div><div id="guideList" class="card-list"></div></section>
 <section id="guideDetailView" class="view"><div class="page-title"><button class="back" data-go="guides">‹</button><div><small>FIELD GUIDE</small><h2 id="guideTitle">導讀</h2></div></div><article id="guideBody" class="guide-paper"></article></section>
 
-<section id="moreView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>TOOLS</small><h2>更多</h2></div></div><div class="menu-list"><button data-go="rental">🚙 <span>租車資訊</span><i>›</i></button><button data-go="itineraryEdit">✏️ <span>行程編輯</span><i>›</i></button><button data-go="flights">✈️ <span>航班資訊</span><i>›</i></button><button data-go="days">🗓️ <span>每日行程</span><i>›</i></button><button data-go="drive">🚗 <span>自駕・SA/PA</span><i>›</i></button><button data-go="planb">🆘 <span>Plan B</span><i>›</i></button><button data-go="checklist">✅ <span>出發前確認</span><i>›</i></button><button id="importPrivateBtn">🔐 <span>匯入私人訂房資料</span><i>›</i></button><button id="exportBackupBtn">💾 <span>匯出私人資料備份</span><i>›</i></button><button id="importBackupBtn">♻️ <span>還原備份</span><i>›</i></button></div><input type="file" id="importFile" accept="application/json" hidden><input type="file" id="backupFile" accept="application/json" hidden></section>
+
+<section id="pretripView" class="view">
+  <div class="page-title">
+    <button class="back" data-go="more">‹</button>
+    <div><small>PRE-TRIP CENTER</small><h2>出發前提醒中心</h2></div>
+    <button id="exportReminderIcs" class="small-edit-btn">📅</button>
+  </div>
+  <div class="notice">⏳ 訂房取消期限來自目前 App 內住宿資料；信用卡／貴賓室屬會變動資訊，已另外列為「出發前再確認」。完成的項目會自動收到下方。</div>
+  <div id="pretripSummary" class="summary-grid"></div>
+
+  <section class="paper">
+    <div class="section-head"><h3>近期重要期限</h3><button id="toggleDoneReminders" class="textlink">顯示已完成</button></div>
+    <div id="reminderList" class="reminder-list"></div>
+  </section>
+
+  <section class="paper">
+    <div class="section-head"><h3>出發前最後複查</h3></div>
+    <div id="recheckList" class="reminder-list"></div>
+  </section>
+</section>
+
+<section id="systemView" class="view">
+  <div class="page-title">
+    <button class="back" data-go="more">‹</button>
+    <div><small>SYSTEM · V2.8</small><h2>版本與備份</h2></div>
+  </div>
+
+  <section class="system-hero">
+    <div><small>CURRENT VERSION</small><h2>Japan Road Trip 2026</h2><p id="systemVersion">V2.8 · FINAL QA</p></div>
+    <span id="updateBadge" class="system-badge">檢查中</span>
+  </section>
+
+  <section class="paper">
+    <div class="section-head"><h3>🔄 更新管理</h3></div>
+    <div id="updateStatus" class="system-status"></div>
+    <div class="footer-actions">
+      <button id="checkUpdateBtn">檢查 GitHub 最新版</button>
+      <button id="reloadLatestBtn" class="primary">安全重新載入最新版</button>
+    </div>
+    <p class="hint">「安全重新載入」只清除 PWA 快取並重新抓程式，不會清除 IndexedDB、行程修改、記帳、日記或訂房私人資料。</p>
+  </section>
+
+  <section class="paper">
+    <div class="section-head"><h3>💾 備份健康檢查</h3><span id="backupHealthBadge" class="tag">檢查中</span></div>
+    <div id="backupHealth" class="health-grid"></div>
+    <div class="footer-actions">
+      <button id="systemExportBackup" class="primary">立即匯出完整備份</button>
+      <button data-go="qa">執行出發前測試</button>
+    </div>
+  </section>
+
+  <section class="paper">
+    <div class="section-head"><h3>📦 本機儲存空間</h3></div>
+    <div id="storageHealth" class="system-status"></div>
+  </section>
+</section>
+
+<section id="qaView" class="view">
+  <div class="page-title">
+    <button class="back" data-go="system">‹</button>
+    <div><small>FINAL QA</small><h2>出發前系統測試</h2></div>
+    <button id="runQaBtn" class="small-edit-btn">▶</button>
+  </div>
+
+  <div class="notice">🧪 這個測試不會刪除資料。它會檢查 PWA 快取、IndexedDB、私人資料、Google Maps / Map Code、行程編輯狀態與 OCR 使用條件。</div>
+
+  <section class="qa-score">
+    <div><small>READINESS</small><h2 id="qaScore">尚未執行</h2><p id="qaSubtitle">按右上角 ▶ 開始</p></div>
+    <div class="progress-ring qa-ring" id="qaRing"><span>—</span></div>
+  </section>
+
+  <div id="qaList" class="qa-list"></div>
+
+  <section class="paper">
+    <div class="section-head"><h3>建議出發前實機測試</h3></div>
+    <div class="qa-manual">
+      <button onclick="go('trip')">▶ 打開旅行模式</button>
+      <button onclick="go('expenses')">🧾 測試新增一筆支出</button>
+      <button onclick="go('itineraryEdit')">✏️ 檢查行程編輯</button>
+      <button onclick="go('hotels')">🏨 檢查私人住宿資料</button>
+    </div>
+  </section>
+</section>
+
+<section id="moreView" class="view"><div class="page-title"><button class="back" data-go="home">‹</button><div><small>TOOLS</small><h2>更多</h2></div></div><div class="menu-list"><button data-go="pretrip">⏳ <span>出發前提醒中心</span><i>›</i></button><button data-go="system">⚙️ <span>版本・備份・系統測試</span><i>›</i></button><button data-go="rental">🚙 <span>租車資訊</span><i>›</i></button><button data-go="itineraryEdit">✏️ <span>行程編輯</span><i>›</i></button><button data-go="flights">✈️ <span>航班資訊</span><i>›</i></button><button data-go="days">🗓️ <span>每日行程</span><i>›</i></button><button data-go="drive">🚗 <span>自駕・SA/PA</span><i>›</i></button><button data-go="planb">🆘 <span>Plan B</span><i>›</i></button><button data-go="checklist">✅ <span>出發前確認</span><i>›</i></button><button id="importPrivateBtn">🔐 <span>匯入私人訂房資料</span><i>›</i></button><button id="exportBackupBtn">💾 <span>匯出私人資料備份</span><i>›</i></button><button id="importBackupBtn">♻️ <span>還原備份</span><i>›</i></button></div><input type="file" id="importFile" accept="application/json" hidden><input type="file" id="backupFile" accept="application/json" hidden></section>
 <section id="checklistView" class="view"><div class="page-title"><button class="back" data-go="more">‹</button><div><small>PRE-TRIP</small><h2>出發前確認</h2></div></div><div id="checklist" class="checklist"></div><div class="footer-actions"><button id="resetChecklist">清除勾選</button></div></section>
 </main>
 <nav class="bottom-nav"><button data-go="home" class="active"><span>⌂</span><small>首頁</small></button><button data-go="trip"><span>▶</span><small>旅行</small></button><button data-go="wallet"><span>💴</span><small>錢包</small></button><button data-go="expenses"><span>🧾</span><small>記帳</small></button><button data-go="more"><span>•••</span><small>更多</small></button></nav>

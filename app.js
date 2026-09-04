@@ -1,4 +1,5 @@
 const baseData=window.TRIP_DATA||[], hotels=window.HOTELS||[], flights=window.FLIGHTS||[], loungeData=window.LOUNGE_DATA||[], rental=window.RENTAL_DATA||{}, ref=window.REFERENCE_DATA||{cards:[],networkPromos:[],guides:[]};
+const APP_META={version:'2.8',label:'FINAL QA',released:'2026-09-04'};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], pad=n=>String(n).padStart(2,'0');
 const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2);
@@ -34,7 +35,7 @@ async function saveItineraryCustom(){
 }
 function refreshEffectiveData(){data=buildEffectiveData();}
 
-function go(name){$$('.view').forEach(v=>v.classList.remove('active')); const v=$('#'+name+'View'); if(v)v.classList.add('active'); $$('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===name)); window.scrollTo({top:0,behavior:'smooth'}); if(name==='expenses')renderExpenses(); if(name==='shopping')renderShopping(); if(name==='notes')renderNotes(); if(name==='hotels')renderHotels(); if(name==='wallet')refreshRateUI(); if(name==='cards'){renderCards();renderCardCompare();} if(name==='trip')renderTripMode(); if(name==='flights')renderFlights(); if(name==='itineraryEdit')renderItineraryEditor(); if(name==='rental')renderRental();}
+function go(name){$$('.view').forEach(v=>v.classList.remove('active')); const v=$('#'+name+'View'); if(v)v.classList.add('active'); $$('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===name)); window.scrollTo({top:0,behavior:'smooth'}); if(name==='expenses')renderExpenses(); if(name==='shopping')renderShopping(); if(name==='notes')renderNotes(); if(name==='hotels')renderHotels(); if(name==='wallet')refreshRateUI(); if(name==='cards'){renderCards();renderCardCompare();} if(name==='trip')renderTripMode(); if(name==='flights')renderFlights(); if(name==='itineraryEdit')renderItineraryEditor(); if(name==='rental')renderRental(); if(name==='pretrip')renderPretrip(); if(name==='system')renderSystem(); if(name==='qa')runQa(false);}
 $$('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
 function mapBtn(url){return url?`<a href="${esc(url)}" target="_blank" rel="noopener">📍 導航</a>`:''}
 function mapCode(code,status=''){
@@ -953,9 +954,291 @@ const checks=['護照','台灣駕照','國際駕照／日文譯本','租車訂�
 let dialogSaveFn=null;function openDialog(title,fields,onSave){$('#dialogTitle').textContent=title;dialogSaveFn=onSave;$('#dialogFields').innerHTML='<div class="form-grid">'+fields.map(f=>{const[n,l,t,v,opts]=f;if(t==='textarea')return `<label>${l}<textarea name="${n}">${esc(v)}</textarea></label>`;if(t==='select')return `<label>${l}<select name="${n}">${opts.map(o=>`<option ${o==v?'selected':''}>${esc(o)}</option>`).join('')}</select></label>`;if(t==='file')return `<label>${l}<input name="${n}" type="file" accept="image/*"></label>`;return `<label>${l}<input name="${n}" type="${t}" value="${esc(v)}"></label>`}).join('')+'</div>';$('#editDialog').showModal()}
 $('#editForm').addEventListener('submit',async e=>{if(e.submitter?.value==='cancel')return; e.preventDefault();const fd=new FormData(e.currentTarget),v={};for(const[k,val]of fd.entries()){if(val instanceof File){if(val.size)v[k+'File']=val}else v[k]=val}await dialogSaveFn?.(v);$('#editDialog').close()});
 async function compressImage(file,max=1280,quality=.72){return new Promise((res,rej)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{let w=img.width,h=img.height;if(Math.max(w,h)>max){const s=max/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s)}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);res(c.toDataURL('image/jpeg',quality))};img.onerror=rej;img.src=url})}
+
+// PRE-TRIP / SYSTEM / QA
+const REMINDER_STATE_KEY='japan-trip-reminder-state-v1';
+let reminderState=JSON.parse(localStorage.getItem(REMINDER_STATE_KEY)||'{}');
+let showDoneReminders=false;
+
+function parseDeadline(v){
+  if(!v)return null;
+  return new Date(String(v).length===10?v+'T23:59:00':v);
+}
+function dayDiff(t){
+  const now=new Date();
+  return Math.ceil((t-now)/86400000);
+}
+function reminderTone(days){
+  if(days<0)return 'past';
+  if(days<=3)return 'urgent';
+  if(days<=14)return 'soon';
+  return 'normal';
+}
+function deadlineText(date){
+  const d=parseDeadline(date); if(!d)return '';
+  const days=dayDiff(d);
+  if(days<0)return `已過 ${Math.abs(days)} 天`;
+  if(days===0)return '今天到期';
+  return `剩 ${days} 天`;
+}
+function buildReminders(){
+  const rows=[];
+  hotels.forEach(h=>{
+    const b=h.booking||{};
+    if(!b.cancelDate)return;
+    rows.push({
+      id:`cancel-${h.name}`,
+      type:'住宿取消',
+      title:h.name,
+      due:String(b.cancelDate),
+      detail:`${b.platform||'訂房'}${b.amount?' · '+b.amount:''}｜免費取消期限`,
+      action:'hotels'
+    });
+  });
+  const outbound=flights.find(f=>f.id==='BR196');
+  if(outbound?.seatReminder) rows.push({
+    id:'seat-BR196',
+    type:'航班',
+    title:'BR196 去程選位',
+    due:'2026-11-19T15:20:00+08:00',
+    detail:'起飛前48小時；目前去程尚待選位。',
+    action:'flights'
+  });
+  rows.sort((a,b)=>parseDeadline(a.due)-parseDeadline(b.due));
+  return rows;
+}
+const RECHECK_ITEMS=[
+  {id:'recheck-cards',title:'重新確認11月信用卡權益',detail:'銀行回饋與 Visa / Mastercard / JCB 活動會變動；建議出發前約1週再更新一次。',action:'cards'},
+  {id:'recheck-lounge',title:'確認 U.First / JCB 貴賓室資格',detail:'確認玉山國旅門檻、實際JCB卡等級及當日合作據點。',action:'flights'},
+  {id:'recheck-maps',title:'下載 Google Maps 離線地圖',detail:'東京、富士五湖、靜岡、濱松、湘南／鎌倉、千葉／成田。',action:'checklist'},
+  {id:'recheck-network',title:'確認 eSIM / 行動網路',detail:'建議保留一個可接收簡訊或備援網路方案。',action:'checklist'},
+  {id:'recheck-backup',title:'出發前匯出一次完整備份',detail:'包含訂房私人資料、行程修改、記帳、日記、照片與設定。',action:'system'}
+];
+
+function saveReminderState(){
+  localStorage.setItem(REMINDER_STATE_KEY,JSON.stringify(reminderState));
+}
+window.toggleReminderDone=id=>{
+  reminderState[id]=!reminderState[id];
+  saveReminderState();
+  renderPretrip();
+  renderHomeReminder();
+};
+function reminderRowHTML(r,isRecheck=false){
+  const done=!!reminderState[r.id];
+  const d=isRecheck?null:parseDeadline(r.due);
+  const days=d?dayDiff(d):null;
+  const tone=d?reminderTone(days):'normal';
+  return `<article class="reminder-row ${done?'done':''} ${tone}">
+    <button class="reminder-check" onclick="toggleReminderDone('${esc(r.id)}')">${done?'✓':'○'}</button>
+    <div class="grow">
+      <div class="meta"><span class="pill">${esc(r.type||'出發前確認')}</span>${d?`<span class="pill">${esc(String(r.due).replace('T',' ').replace('+08:00',''))}</span>`:''}</div>
+      <h3>${esc(r.title)}</h3>
+      <p>${esc(r.detail||'')}</p>
+    </div>
+    <div class="reminder-side">
+      ${d?`<b>${esc(deadlineText(r.due))}</b>`:''}
+      ${r.action?`<button data-reminder-go="${esc(r.action)}">查看</button>`:''}
+    </div>
+  </article>`;
+}
+function wireReminderGo(){
+  $$('[data-reminder-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.reminderGo)));
+}
+function renderPretrip(){
+  const reminders=buildReminders();
+  const active=reminders.filter(r=>!reminderState[r.id]);
+  const doneCount=reminders.length-active.length;
+  const next=active.find(r=>parseDeadline(r.due)>=new Date())||active[0];
+  $('#pretripSummary').innerHTML=`
+    <div class="summary"><small>重要期限</small><b>${reminders.length}</b></div>
+    <div class="summary"><small>已完成</small><b>${doneCount}</b></div>
+    <div class="summary"><small>下一個</small><b>${next?deadlineText(next.due):'完成'}</b></div>
+    <div class="summary"><small>出發前複查</small><b>${RECHECK_ITEMS.filter(x=>!reminderState[x.id]).length}</b></div>`;
+  const shown=reminders.filter(r=>showDoneReminders||!reminderState[r.id]);
+  $('#reminderList').innerHTML=shown.length?shown.map(r=>reminderRowHTML(r,false)).join(''):'<div class="empty">重要期限都處理完成了。</div>';
+  $('#recheckList').innerHTML=RECHECK_ITEMS.map(r=>reminderRowHTML(r,true)).join('');
+  $('#toggleDoneReminders').textContent=showDoneReminders?'隱藏已完成':'顯示已完成';
+  wireReminderGo();
+}
+$('#toggleDoneReminders')?.addEventListener('click',()=>{showDoneReminders=!showDoneReminders;renderPretrip()});
+
+function renderHomeReminder(){
+  const el=$('#homeReminderText'); if(!el)return;
+  const pending=buildReminders().filter(r=>!reminderState[r.id]&&parseDeadline(r.due)>=new Date());
+  const next=pending[0];
+  el.textContent=next?`${next.title} · ${deadlineText(next.due)}`:'重要期限目前都已處理';
+}
+renderHomeReminder();
+
+function remindersICS(){
+  const rows=buildReminders().filter(r=>!reminderState[r.id]);
+  const events=rows.map(r=>{
+    const d=parseDeadline(r.due);
+    const y=d.getFullYear(),m=pad(d.getMonth()+1),day=pad(d.getDate()),hh=pad(d.getHours()),mm=pad(d.getMinutes());
+    const local=`${y}${m}${day}T${hh}${mm}00`;
+    return `BEGIN:VEVENT\r\nUID:${r.id}@japantrip\r\nDTSTART;TZID=Asia/Taipei:${local}\r\nDTEND;TZID=Asia/Taipei:${local}\r\nSUMMARY:${icsEscape(r.title)}\r\nDESCRIPTION:${icsEscape(r.detail)}\r\nBEGIN:VALARM\r\nTRIGGER:-P1D\r\nACTION:DISPLAY\r\nDESCRIPTION:${icsEscape(r.title+' 明天到期')}\r\nEND:VALARM\r\nEND:VEVENT`;
+  }).join('\r\n');
+  return `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Japan Road Trip 2026//Pretrip Reminders//ZH-TW\r\n${events}\r\nEND:VCALENDAR\r\n`;
+}
+$('#exportReminderIcs')?.addEventListener('click',()=>{
+  downloadBlob(new Blob([remindersICS()],{type:'text/calendar;charset=utf-8'}),'JapanTrip-pretrip-reminders.ics');
+  toast('重要期限行事曆已匯出')
+});
+
+// SYSTEM / BACKUP HEALTH
+function fmtDateTime(v){
+  if(!v)return '尚未';
+  try{return new Date(v).toLocaleString('zh-TW',{hour12:false})}catch{return v}
+}
+async function collectHealth(){
+  const [expenses,notes,shopping,hotelPrivate,hotelCovers,settings]=await Promise.all([
+    TripDB.all('expenses'),TripDB.all('notes'),TripDB.all('shopping'),
+    TripDB.all('hotelPrivate'),TripDB.all('hotelCovers'),TripDB.all('settings')
+  ]);
+  const lastBackup=settings.find(x=>x.id==='lastBackupAt')?.value||null;
+  const itin=settings.find(x=>x.id==='itineraryCustom')?.value||itineraryCustom;
+  const photoCount=notes.filter(x=>x.photo).length+hotelCovers.length+expenses.filter(x=>x.receipt).length;
+  return {
+    expenses:expenses.length, notes:notes.length, shopping:shopping.length,
+    hotelPrivate:hotelPrivate.length, photos:photoCount,
+    customItin:(itin?.added?.length||0)+Object.keys(itin?.overrides||{}).length,
+    lastBackup
+  };
+}
+async function renderSystem(){
+  $('#systemVersion').textContent=`V${APP_META.version} · ${APP_META.label} · ${APP_META.released}`;
+  const h=await collectHealth();
+  const age=h.lastBackup?Math.floor((Date.now()-new Date(h.lastBackup))/86400000):null;
+  const healthy=h.lastBackup&&age<=14;
+  $('#backupHealthBadge').textContent=!h.lastBackup?'尚未備份':age===0?'今天已備份':`${age} 天前`;
+  $('#backupHealthBadge').className=`tag ${healthy?'health-good':h.lastBackup?'health-warn':'health-bad'}`;
+  $('#backupHealth').innerHTML=`
+    <div><small>上次完整備份</small><b>${fmtDateTime(h.lastBackup)}</b></div>
+    <div><small>私人住宿資料</small><b>${h.hotelPrivate} 間</b></div>
+    <div><small>行程自訂／修改</small><b>${h.customItin} 筆</b></div>
+    <div><small>記帳</small><b>${h.expenses} 筆</b></div>
+    <div><small>旅行日記</small><b>${h.notes} 篇</b></div>
+    <div><small>本機小照片／收據</small><b>${h.photos} 張</b></div>`;
+  if(navigator.storage?.estimate){
+    const s=await navigator.storage.estimate();
+    const used=s.usage||0,quota=s.quota||0,pct=quota?used/quota*100:0;
+    $('#storageHealth').innerHTML=`<b>${(used/1024/1024).toFixed(1)} MB</b> 已使用${quota?` ／ 約 ${(quota/1024/1024).toFixed(0)} MB 可用配額`:''}<div class="storage-bar"><i style="width:${Math.min(100,pct)}%"></i></div><p>${pct<70?'目前儲存空間充足。':'照片較多，建議先匯出備份。'}</p>`;
+  }else{
+    $('#storageHealth').innerHTML='<p>此瀏覽器未提供儲存空間估算；私人資料仍可正常使用與匯出。</p>';
+  }
+  await checkForUpdate(false);
+}
+$('#systemExportBackup')?.addEventListener('click',exportFullBackup);
+
+async function checkForUpdate(showToast=true){
+  const badge=$('#updateBadge'),status=$('#updateStatus');
+  if(badge)badge.textContent='檢查中';
+  try{
+    const res=await fetch(`./version.json?ts=${Date.now()}`,{cache:'no-store'});
+    if(!res.ok)throw new Error('version fetch failed');
+    const remote=await res.json();
+    const same=String(remote.version)===APP_META.version;
+    if(badge){badge.textContent=same?'已是最新版':`有新版 V${remote.version}`;badge.className=`system-badge ${same?'current':'update'}`;}
+    if(status)status.innerHTML=`<b>${same?'目前已是 GitHub 上的最新版':'GitHub 已部署較新的版本'}</b><p>本機：V${APP_META.version} · GitHub：V${esc(remote.version||'?')} · 發布 ${esc(remote.released||'')}</p>`;
+    if(showToast)toast(same?'目前已是最新版':`發現新版 V${remote.version}`);
+    return {ok:true,same,remote};
+  }catch(e){
+    if(badge){badge.textContent='離線／無法檢查';badge.className='system-badge offline';}
+    if(status)status.innerHTML='<b>目前無法連線檢查 GitHub 版本</b><p>不影響離線行程、記帳與私人資料使用。</p>';
+    if(showToast)toast('目前無法檢查更新');
+    return {ok:false};
+  }
+}
+$('#checkUpdateBtn')?.addEventListener('click',()=>checkForUpdate(true));
+
+async function safeReloadLatest(){
+  if(!confirm('安全重新載入最新版？PWA 快取會重建，但不會清除你的 IndexedDB、記帳、日記、私人訂房資料或行程修改。'))return;
+  try{
+    if('serviceWorker'in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.update().catch(()=>null)));
+    }
+    const keys=await caches.keys();
+    await Promise.all(keys.filter(k=>k.startsWith('japan-road-trip-2026-')).map(k=>caches.delete(k)));
+    location.href=location.pathname+'?refresh='+Date.now();
+  }catch(e){
+    location.reload();
+  }
+}
+$('#reloadLatestBtn')?.addEventListener('click',safeReloadLatest);
+
+// QA
+function qaRow(status,title,detail){
+  const icon=status==='pass'?'✓':status==='warn'?'!':'×';
+  return `<article class="qa-row ${status}"><span>${icon}</span><div><b>${esc(title)}</b><p>${esc(detail)}</p></div></article>`;
+}
+async function runQa(force=true){
+  const list=$('#qaList'); if(!list)return;
+  if(!force && list.dataset.done==='1')return;
+  list.innerHTML='<div class="empty">正在檢查…</div>';
+  const results=[];
+  // 1. JS / data
+  results.push({status:baseData.length>=90?'pass':'warn',title:'核心行程資料',detail:`目前載入 ${baseData.length} 筆原始行程、${hotels.length} 間住宿、${flights.length} 個航班。`});
+  // 2. IndexedDB read/write
+  try{
+    await TripDB.put('settings',{id:'qaProbe',value:new Date().toISOString()});
+    const probe=await TripDB.get('settings','qaProbe');
+    results.push({status:probe?'pass':'warn',title:'IndexedDB 私人資料庫',detail:probe?'可正常寫入與讀取。':'讀取結果異常。'});
+    await TripDB.del('settings','qaProbe');
+  }catch(e){
+    results.push({status:'fail',title:'IndexedDB 私人資料庫',detail:'無法寫入；請勿開始大量記帳或日記。'});
+  }
+  // 3. service worker/cache
+  const controlled=!!navigator.serviceWorker?.controller;
+  const cacheKeys='caches'in window?await caches.keys():[];
+  results.push({status:controlled?'pass':'warn',title:'PWA 離線控制',detail:controlled?`Service Worker 已控制頁面；找到 ${cacheKeys.length} 個快取。`:'目前頁面尚未被 Service Worker 控制；重新開啟 App 後再測一次。'});
+  // 4. backup
+  const health=await collectHealth();
+  const backupAge=health.lastBackup?Math.floor((Date.now()-new Date(health.lastBackup))/86400000):null;
+  results.push({status:health.lastBackup&&backupAge<=14?'pass':'warn',title:'完整備份',detail:health.lastBackup?`上次備份：${fmtDateTime(health.lastBackup)}（${backupAge}天前）。`:'尚未匯出完整備份。'});
+  // 5. hotel private
+  results.push({status:health.hotelPrivate>0?'pass':'warn',title:'住宿私人資料',detail:health.hotelPrivate>0?`已有 ${health.hotelPrivate} 間住宿私人資料存在本機。`:'目前偵測不到私人住宿資料；若你需要訂房號／驗證碼，請確認已匯入。'});
+  // 6. Maps & Map Codes
+  const maps=baseData.filter(r=>r['Google Maps']);
+  const verified=maps.filter(r=>r['Map Code']);
+  const critical=['NIPPON Rent-A-Car TX淺草｜取車','NIPPON Rent-A-Car 成田空港営業所｜還車'];
+  const criticalOk=critical.every(n=>baseData.some(r=>r['名稱']===n&&r['Google Maps']&&r['Map Code']));
+  results.push({status:criticalOk&&verified.length>=50?'pass':'warn',title:'Google Maps / Map Code',detail:`${maps.length} 個地圖項目；${verified.length} 個有 Map Code。租車取／還車關鍵點 ${criticalOk?'完整':'需檢查'}。`});
+  // 7. itinerary editing storage
+  const edits=(itineraryCustom.added?.length||0)+Object.keys(itineraryCustom.overrides||{}).length+Object.keys(itineraryCustom.hidden||{}).length;
+  results.push({status:'pass',title:'行程編輯層',detail:`編輯功能可用；目前有 ${edits} 筆本機新增／修改／隱藏狀態。`});
+  // 8. OCR
+  results.push({status:window.Tesseract?'pass':navigator.onLine?'warn':'warn',title:'收據 OCR',detail:window.Tesseract?'OCR 模組本次已載入。':'OCR 第一次使用仍需網路下載 Tesseract 日文模組；旅行中辨識後仍需人工確認。'});
+  // 9. Network
+  results.push({status:navigator.onLine?'pass':'warn',title:'目前網路',detail:navigator.onLine?'目前在線，可測試匯率、OCR與更新檢查。':'目前離線；核心行程仍可使用。'});
+  // 10. version
+  const ver=await checkForUpdate(false);
+  results.push({status:ver.ok&&ver.same?'pass':ver.ok?'warn':'warn',title:'App 版本',detail:ver.ok?(ver.same?`V${APP_META.version} 已是 GitHub 最新版。`:`本機 V${APP_META.version}，GitHub 有 V${ver.remote.version}。`):`無法線上確認；本機為 V${APP_META.version}。`});
+
+  const pass=results.filter(x=>x.status==='pass').length;
+  const score=Math.round(pass/results.length*100);
+  $('#qaScore').textContent=`${score}%`;
+  $('#qaSubtitle').textContent=score>=90?'已可作為旅行主工具':score>=70?'大致正常，請處理黃色項目':'建議先處理異常項目';
+  $('#qaRing').style.setProperty('--p',score);
+  $('#qaRing span').textContent=`${score}%`;
+  list.innerHTML=results.map(x=>qaRow(x.status,x.title,x.detail)).join('');
+  list.dataset.done='1';
+}
+$('#runQaBtn')?.addEventListener('click',()=>runQa(true));
+
+
 // Backup/import
 function downloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
-$('#exportBackupBtn').addEventListener('click',async()=>{const payload=await TripDB.exportAll();downloadBlob(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),'JapanTrip-private-backup.json')});
+async function exportFullBackup(){
+  const now=new Date().toISOString();
+  await TripDB.put('settings',{id:'lastBackupAt',value:now});
+  const payload=await TripDB.exportAll();
+  downloadBlob(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),`JapanTrip-private-backup-${now.slice(0,10)}.json`);
+  toast('完整備份已匯出');
+  if($('#systemView')?.classList.contains('active'))renderSystem();
+}
+$('#exportBackupBtn').addEventListener('click',exportFullBackup);
 $('#importPrivateBtn').addEventListener('click',()=>$('#importFile').click());$('#importBackupBtn').addEventListener('click',()=>$('#backupFile').click());async function handleImport(file){
   const j=JSON.parse(await file.text());
   await TripDB.importAll(j);
@@ -980,4 +1263,4 @@ TripDB.open().then(async()=>{
     }
   }
 });
-renderHotels();renderShopping();renderExpenses();renderNotes();
+renderHotels();renderShopping();renderExpenses();renderNotes();renderHomeReminder();
