@@ -1,12 +1,9 @@
 {
-  "version": "2.8",
-  "label": "FINAL QA",
-  "released": "2026-09-04",
-  "cache": "japan-road-trip-2026-v2-8",
+  "version": "2.8.1",
+  "label": "濱松住宿更新",
+  "released": "2026-09-09",
+  "cache": "japan-road-trip-2026-v2-8-1-hamamatsu",
   "notes": [
-    "出發前提醒中心",
-    "備份健康檢查",
-    "版本與安全更新管理",
-    "出發前系統測試"
+    "僅更新濱松住宿與相关導航；保留行程時間及景點順序"
   ]
 }
