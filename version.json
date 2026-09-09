@@ -1,10 +1,11 @@
 {
-  "version": "2.8.3",
-  "label": "濱松住宿更新",
+  "version": "2.8.4",
+  "label": "11/26 御前崎・掛川行程更新",
   "released": "2026-09-09",
-  "cache": "japan-road-trip-2026-v2-8-3-hamamatsu",
+  "cache": "japan-road-trip-2026-v2-8-4-omaezaki-kakegawa",
   "notes": [
-    "使用者提供的Super Hotel封面原圖已嵌入，可離線顯示",
-    "2晚NT$3,777；聯邦M卡已付款；免費取消至11/25"
+    "11/26 正式改為久能山東照宮→靜岡淺間神社→御前崎海鮮なぶら市場→掛川城／二之丸御殿→Super Hotel 濱松",
+    "移除原11/26靜岡市區午餐與玉露之里主行程",
+    "保留Super Hotel濱松既有住宿資料與私人本機資料機制"
   ]
 }
