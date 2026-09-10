@@ -1,4 +1,4 @@
-const CACHE='japan-road-trip-v2.9.1';
+const CACHE='japan-road-trip-v2.9.2';
 const ASSETS=['./','./index.html','./style.css','./app.js','./data.js','./reference.js','./db.js','./manifest.json','./version.json','./trip-guide.html','./kakegawa-guide.html','./culture-history-guide-kakegawa.pdf','./suzuki-tickets.html','./icons/icon-192.png','./icons/icon-512.png'];
 const NETWORK_FIRST=['/app.js','/data.js','/version.json','/trip-guide.html','/index.html'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));

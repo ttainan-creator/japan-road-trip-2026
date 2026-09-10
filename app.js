@@ -1,5 +1,5 @@
 const baseData=window.TRIP_DATA||[], hotels=window.HOTELS||[], flights=window.FLIGHTS||[], loungeData=window.LOUNGE_DATA||[], rental=window.RENTAL_DATA||{}, ref=window.REFERENCE_DATA||{cards:[],networkPromos:[],guides:[]};
-const APP_META={version:'2.9.1',label:'全旅程文化歷史導讀按鈕修正版',released:'2026-09-10'};
+const APP_META={version:'2.9.2',label:'導讀返回行程修正版',released:'2026-09-10'};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], pad=n=>String(n).padStart(2,'0');
 const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2);
@@ -77,10 +77,46 @@ function inferredGuide(r){
   const hit=GUIDE_ROUTE_RULES.find(([re])=>re.test(name));
   return hit?hit[1]:'';
 }
+const GUIDE_RETURN_KEY='japan-trip-guide-return-v1';
+function rememberGuideReturn(){
+  try{
+    const activeView=document.querySelector('.view.active');
+    const activeDay=document.querySelector('#daysTabs button.active');
+    const state={
+      view:activeView?.id?activeView.id.replace(/View$/,''):'today',
+      todayDay:document.querySelector('#todaySelect')?.value||'',
+      daysDay:activeDay?.dataset?.day||'',
+      scrollY:window.scrollY||0,
+      savedAt:Date.now()
+    };
+    sessionStorage.setItem(GUIDE_RETURN_KEY,JSON.stringify(state));
+  }catch(e){}
+}
+window.rememberGuideReturn=rememberGuideReturn;
+function restoreGuideReturn(){
+  const params=new URLSearchParams(location.search);
+  if(params.get('guideReturn')!=='1')return;
+  let state=null;
+  try{state=JSON.parse(sessionStorage.getItem(GUIDE_RETURN_KEY)||'null')}catch(e){}
+  try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}
+  if(!state)return;
+  setTimeout(()=>{
+    try{
+      if(state.todayDay&&document.querySelector('#todaySelect')){
+        document.querySelector('#todaySelect').value=state.todayDay;
+        renderToday();
+      }
+      if(state.daysDay)renderDay(state.daysDay);
+      if(state.view)go(state.view);
+      setTimeout(()=>window.scrollTo({top:Number(state.scrollY)||0,behavior:'auto'}),80);
+      sessionStorage.removeItem(GUIDE_RETURN_KEY);
+    }catch(e){}
+  },80);
+}
 function rowMapActions(r){
   const ticket=r['Suzuki QR']?`<a href="${esc(r['Suzuki QR'])}" target="_blank" rel="noopener">🎫 入場 QR</a>`:'';
   const guideHref=inferredGuide(r);
-  const guide=guideHref?`<a href="${esc(guideHref)}">📖 ${esc(r['Guide Label']||'完整導讀')}</a>`:'';
+  const guide=guideHref?`<a href="${esc(guideHref)}" onclick="rememberGuideReturn()">📖 ${esc(r['Guide Label']||'完整導讀')}</a>`:'';
   const guidePdf=r['Guide PDF']?`<a href="${esc(r['Guide PDF'])}" target="_blank" rel="noopener">📕 完整 PDF</a>`:'';
   return `${mapBtn(r['Google Maps'])}${r['Google Maps']?mapCode(r['Map Code'],r['Map Code Status']):mapCode(r['Map Code'])}${ticket}${guide}${guidePdf}`;
 }
@@ -1304,3 +1340,6 @@ TripDB.open().then(async()=>{
   }
 });
 renderHotels();renderShopping();renderExpenses();renderNotes();renderHomeReminder();
+
+// Restore exact itinerary context after returning from a guide page.
+restoreGuideReturn();
