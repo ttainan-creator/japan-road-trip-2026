@@ -1,11 +1,12 @@
 {
-  "version": "2.8.4",
-  "label": "11/26 御前崎・掛川行程更新",
-  "released": "2026-09-09",
-  "cache": "japan-road-trip-2026-v2-8-4-omaezaki-kakegawa",
+  "version": "2.8.6",
+  "label": "掛川茶備案＋Map Code補強",
+  "released": "2026-09-10",
+  "cache": "japan-road-trip-2026-v2-8-6-kakegawa-tea",
   "notes": [
-    "11/26 正式改為久能山東照宮→靜岡淺間神社→御前崎海鮮なぶら市場→掛川城／二之丸御殿→Super Hotel 濱松",
-    "移除原11/26靜岡市區午餐與玉露之里主行程",
-    "保留Super Hotel濱松既有住宿資料與私人本機資料機制"
+    "11/26掛川新增二之丸茶室、日本茶KIMIKURA本店、茶之庭、これっしか処等品茶／買茶備案",
+    "所有新增掛川茶點均附Google Maps與Map Code",
+    "補齊御前崎海鮮なぶら市場、掛川城、Super Hotel濱松Map Code",
+    "11/27 Suzuki歷史館15:00與加密入場QR功能完整保留"
   ]
 }
