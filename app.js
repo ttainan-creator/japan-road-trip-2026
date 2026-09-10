@@ -1,5 +1,5 @@
 const baseData=window.TRIP_DATA||[], hotels=window.HOTELS||[], flights=window.FLIGHTS||[], loungeData=window.LOUNGE_DATA||[], rental=window.RENTAL_DATA||{}, ref=window.REFERENCE_DATA||{cards:[],networkPromos:[],guides:[]};
-const APP_META={version:'2.8.7',label:'掛川文化歷史讀本整合',released:'2026-09-10'};
+const APP_META={version:'2.9.1',label:'全旅程文化歷史導讀按鈕修正版',released:'2026-09-10'};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], pad=n=>String(n).padStart(2,'0');
 const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2);
@@ -43,7 +43,47 @@ function mapCode(code,status=''){
   if(status)return `<span class="mapcode-na" title="${esc(status)}">🗺 Map Code：—</span>`;
   return '';
 }
-function rowMapActions(r){const ticket=r['Suzuki QR']?`<a href="${esc(r['Suzuki QR'])}" target="_blank" rel="noopener">🎫 入場 QR</a>`:'';const guide=r['Guide']?`<a href="${esc(r['Guide'])}">📖 ${esc(r['Guide Label']||'行前讀本')}</a>`:'';const guidePdf=r['Guide PDF']?`<a href="${esc(r['Guide PDF'])}" target="_blank" rel="noopener">📕 完整 PDF</a>`:'';return `${mapBtn(r['Google Maps'])}${r['Google Maps']?mapCode(r['Map Code'],r['Map Code Status']):mapCode(r['Map Code'])}${ticket}${guide}${guidePdf}`;}
+const GUIDE_ROUTE_RULES=[
+  [/東京國立博物館/i,'trip-guide.html#tokyo-national-museum'],
+  [/新倉山|忠靈塔/i,'trip-guide.html#chureito'],
+  [/本町通|日川時計/i,'trip-guide.html#honcho'],
+  [/北口本宮.*淺間/i,'trip-guide.html#kitaguchi'],
+  [/精進湖/i,'trip-guide.html#shoji'],
+  [/西湖.*療癒|根場/i,'trip-guide.html#nenba'],
+  [/本栖湖|千圓鈔/i,'trip-guide.html#motosu'],
+  [/大石公園|河口湖北岸|紅葉迴廊|河口湖咖啡|河口湖.*美術館/i,'trip-guide.html#kawaguchiko'],
+  [/久能山東照宮/i,'trip-guide.html#kunozan'],
+  [/靜岡淺間神社/i,'trip-guide.html#shizuoka-sengen'],
+  [/掛川城|二之丸御殿/i,'trip-guide.html#kakegawa-castle'],
+  [/二之丸茶室|KIMIKURA|茶之庭|これっしか/i,'trip-guide.html#kakegawa-tea'],
+  [/龍岩洞|竜ヶ岩洞/i,'trip-guide.html#ryugashido'],
+  [/航空自衛隊.*Air Park|濱松廣報館/i,'trip-guide.html#airpark'],
+  [/Suzuki.*歷史館|スズキ歴史館/i,'trip-guide.html#suzuki'],
+  [/濱松城|浜松城/i,'trip-guide.html#hamamatsu-castle'],
+  [/青銅鳥居|弁財天仲見世/i,'trip-guide.html#enoshima-torii'],
+  [/江島神社.*邊津宮|奉安殿/i,'trip-guide.html#enoshima-shrine'],
+  [/岩本樓資料館|弁天洞窟風呂|羅馬風呂/i,'trip-guide.html#iwamotoro'],
+  [/長谷寺/i,'trip-guide.html#hasedera'],
+  [/鎌倉大佛|高德院/i,'trip-guide.html#great-buddha'],
+  [/鶴岡八幡宮/i,'trip-guide.html#tsurugaoka'],
+  [/鎌倉國寶館/i,'trip-guide.html#kamakura-museum'],
+  [/錢洗弁財天/i,'trip-guide.html#zeniarai'],
+  [/成田山新勝寺/i,'trip-guide.html#naritasan'],
+  [/成田山公園|平和大塔/i,'trip-guide.html#peace-pagoda']
+];
+function inferredGuide(r){
+  if(r['Guide']) return r['Guide'];
+  const name=String(r['名稱']||'');
+  const hit=GUIDE_ROUTE_RULES.find(([re])=>re.test(name));
+  return hit?hit[1]:'';
+}
+function rowMapActions(r){
+  const ticket=r['Suzuki QR']?`<a href="${esc(r['Suzuki QR'])}" target="_blank" rel="noopener">🎫 入場 QR</a>`:'';
+  const guideHref=inferredGuide(r);
+  const guide=guideHref?`<a href="${esc(guideHref)}">📖 ${esc(r['Guide Label']||'完整導讀')}</a>`:'';
+  const guidePdf=r['Guide PDF']?`<a href="${esc(r['Guide PDF'])}" target="_blank" rel="noopener">📕 完整 PDF</a>`:'';
+  return `${mapBtn(r['Google Maps'])}${r['Google Maps']?mapCode(r['Map Code'],r['Map Code Status']):mapCode(r['Map Code'])}${ticket}${guide}${guidePdf}`;
+}
 window.copyText=async t=>{try{await navigator.clipboard.writeText(t);toast('已複製 '+t)}catch{prompt('複製',t)}};
 function toast(t){const d=document.createElement('div');d.textContent=t;d.style='position:fixed;left:50%;bottom:95px;transform:translateX(-50%);background:#28231e;color:white;padding:10px 14px;border-radius:999px;font-size:12px;z-index:99';document.body.appendChild(d);setTimeout(()=>d.remove(),1600)}
 function itemHTML(r){const notes=[r['車程／保留'],r['停車'],r['Plan B'],r['備註']].filter(Boolean).slice(0,3);return `<article class="item"><div class="time">${esc(timeOf(r))}</div><div><h3>${esc(r['名稱'])}</h3><div class="meta">${r['類型']?`<span class="pill">${esc(r['類型'])}</span>`:''}${r['地區']?`<span class="pill">${esc(r['地區'])}</span>`:''}${r._custom?`<span class="pill custom-pill">＋自訂</span>`:r._edited?`<span class="pill custom-pill">✏️已修改</span>`:''}</div>${notes.map(n=>`<p class="note">${esc(n)}</p>`).join('')}<div class="actions">${rowMapActions(r)}</div></div></article>`}
